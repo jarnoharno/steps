@@ -16,7 +16,7 @@ import android.widget.ToggleButton;
 
 public class StepsActivity extends Activity {
 
-    private static final String TAG = "Lifecycle";
+    private static final String TAG = "Steps";
     private static final String STEPS = "steps";
 
     private StepsService service = null;

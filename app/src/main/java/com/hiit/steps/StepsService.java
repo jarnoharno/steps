@@ -18,7 +18,7 @@ import android.util.Log;
 
 public class StepsService extends Service {
 
-    private static final String TAG = "Lifecycle";
+    private static final String TAG = "Steps";
     private static final int SERVICE_NOTIFICATION_ID = 1;
 
     public class LocalBinder extends Binder {
@@ -75,9 +75,10 @@ public class StepsService extends Service {
     public void onDestroy() {
         log("onDestroy");
         // in case service gets destroyed without explicit stop()
-        if (walk.isRunning()) {
+        if (walk == null)
+            return;
+        if (walk.isRunning())
             walk.stop();
-        }
     }
 
     public void start() {
