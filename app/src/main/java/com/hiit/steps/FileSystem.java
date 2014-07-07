@@ -1,6 +1,7 @@
 package com.hiit.steps;
 
 import android.os.Environment;
+import android.util.Log;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,5 +39,47 @@ public class FileSystem {
     {
         copyFile(src, dst);
         src.delete();
+    }
+
+    public static File nextAvailableFile(String prefix,
+                                         File dir) {
+        return nextAvailableFile(prefix, "", dir);
+    }
+
+    public static File nextAvailableFile(String prefix,
+                                         String suffix,
+                                         File dir) {
+        return nextAvailableFile(prefix, suffix, dir, 3);
+    }
+
+
+    public static File nextAvailableFile(String prefix,
+                                         String suffix,
+                                         File dir,
+                                         int idLength) {
+        File file;
+        if (idLength < 1 || idLength > 9) {
+            throw new IllegalArgumentException("idLength must be in range [1, 9]");
+        }
+        int max = FileSystem.pow(10, idLength - 1);
+        int i = 0;
+        do {
+            if (i == max) {
+                return nextAvailableFile(prefix, suffix, dir, idLength + 1);
+            }
+            String name = prefix + String.format("%0" + idLength + "d", i++) + suffix;
+            file = new File(dir, name);
+            Log.d("Steps", "checking filename: " + file.getPath());
+        } while (file.exists());
+        Log.d("Steps", "found available file: " + file.getPath());
+        return file;
+    }
+
+    private static int pow(int base, int exp) {
+        int ret = 1;
+        for (int i = 0; i < exp; ++i) {
+            ret *= base;
+        }
+        return ret;
     }
 }

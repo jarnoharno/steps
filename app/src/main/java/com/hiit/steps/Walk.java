@@ -50,7 +50,8 @@ public class Walk implements SensorEventListener {
             return;
 
         increaseSteps();
-        //Log.d(TAG, String.format("%f, %f, %f", event.values[0], event.values[1], event.values[2]));
+        //Log.d(TAG, String.format("%f, %f, %f",
+        // event.values[0], event.values[1], event.values[2]));
         tbuffer[index] = event.timestamp;
         System.arraycopy(event.values, 0, buffer[index], 0, 3);
         ++index;
@@ -89,7 +90,8 @@ public class Walk implements SensorEventListener {
         if (stream == null)
             return;
         for (int i = offset; i < end; ++i) {
-            formatter.format("%d %f %f %f\n", tbuffer[i], buffer[i][0], buffer[i][1], buffer[i][2]);
+            formatter.format("%d %f %f %f\n", tbuffer[i], buffer[i][0],
+                    buffer[i][1], buffer[i][2]);
         }
     }
 
@@ -107,10 +109,12 @@ public class Walk implements SensorEventListener {
         thread = new HandlerThread(STEPS_LOOP);
         thread.start();
         handler = new Handler(thread.getLooper(), loopHandler);
-        service.sensorManager.registerListener(this, service.sensor, SensorManager.SENSOR_DELAY_FASTEST, handler);
+        service.sensorManager.registerListener(this, service.sensor,
+                SensorManager.SENSOR_DELAY_FASTEST, handler);
         // open file
         try {
-            file = File.createTempFile(FILE_PREFIX, FILE_SUFFIX, service.getCacheDir());
+            file = File.createTempFile(FILE_PREFIX, FILE_SUFFIX,
+                    service.getCacheDir());
             stream = new FileOutputStream(file);
             formatter = new Formatter(stream, "UTF-8", null);
             Log.d(TAG, "writing to " + file.toString());
@@ -132,10 +136,12 @@ public class Walk implements SensorEventListener {
 
             if (FileSystem.isExternalStorageWritable()) {
                 // move to files dir
-                File external = new File(service.getExternalFilesDir(null), file.getName());
+                File externalFolder = service.getExternalFilesDir(null);
+                File externalFile = FileSystem.nextAvailableFile(
+                        FILE_PREFIX, FILE_SUFFIX, externalFolder);
                 try {
-                    FileSystem.moveFile(file, external);
-                    file = external;
+                    FileSystem.moveFile(file, externalFile);
+                    file = externalFile;
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
