@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -153,5 +154,20 @@ public class StepsActivity extends Activity {
     protected void onDestroy() {
         log("onDestroy");
         super.onDestroy();
+    }
+    
+    public void logDirs() {
+        log("Environment.getDataDirectory(): " + Environment.getDataDirectory().toString());
+        log("Environment.getDownloadCacheDirectory(): " + Environment.getDownloadCacheDirectory().toString());
+        log("Environment.getExternalStorageDirectory(): " + Environment.getExternalStorageDirectory().toString());
+        log("Environment.getExternalStorageDirectory(Environment.DIRECTORY_DCIM): " +
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).toString());
+        log("Context.getCacheDir(): " + getCacheDir().toString());
+        log("Context.getExternalCacheDir(): " + getExternalCacheDir().toString());
+        log("Context.getExternalFilesDir(null): " + getExternalFilesDir(null).toString());
+        log("Context.getExternalFilesDir(Environment.DIRECTORY_DCIM): " +
+                getExternalFilesDir(Environment.DIRECTORY_DCIM).toString());
+        log("Context.getFilesDir(): " + getFilesDir().toString());
+
     }
 }

@@ -4,6 +4,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
@@ -115,6 +116,7 @@ public class Walk implements SensorEventListener {
             Log.d(TAG, "writing to " + file.toString());
         } catch (IOException e) {
             e.printStackTrace();
+
         }
         running = true;
     }
@@ -128,6 +130,16 @@ public class Walk implements SensorEventListener {
             formatter.close();
             Log.d(TAG, "wrote " + file.toString());
 
+            if (FileSystem.isExternalStorageWritable()) {
+                // move to files dir
+                File external = new File(service.getExternalFilesDir(null), file.getName());
+                try {
+                    FileSystem.moveFile(file, external);
+                    file = external;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
             Toast toast = Toast.makeText(service, ("wrote " + file.toString()), Toast.LENGTH_LONG);
             toast.show();
         } catch (InterruptedException e) {

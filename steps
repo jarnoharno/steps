@@ -1,0 +1,11 @@
+#!/usr/bin/env groovy
+
+def runShell(Object... args) {
+  def shell = 'adb -d shell'
+  [shell, *args].join(' ').execute()
+}
+
+def storage = runShell('echo \$EXTERNAL_STORAGE').text.trim()
+storage += '/Android/data/com.hiit.steps/files'
+
+print runShell('cd', storage, '&&', *args).text
