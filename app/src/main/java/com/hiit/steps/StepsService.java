@@ -82,8 +82,7 @@ public class StepsService extends Service {
     }
 
     public void start() {
-        walk = new Walk(this);
-        walk.start();
+        walk = Walk.start(this);
         setForeground();
     }
 

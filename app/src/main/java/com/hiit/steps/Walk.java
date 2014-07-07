@@ -19,7 +19,7 @@ import java.util.Formatter;
 public class Walk implements SensorEventListener {
 
     private static final String FILE_PREFIX = "steps";
-    private static final String FILE_SUFFIX = ".log";
+    private static final String FILE_SUFFIX = "";
 
     private static final String TAG = "Steps";
 
@@ -161,5 +161,11 @@ public class Walk implements SensorEventListener {
 
     public int getSteps() {
         return steps;
+    }
+
+    public static Walk start(StepsService service) {
+        Walk walk = new Walk(service);
+        walk.start();
+        return walk;
     }
 }
