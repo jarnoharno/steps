@@ -5,14 +5,9 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Binder;
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -30,11 +25,9 @@ public class StepsService extends Service {
     // Binder given to clients
     private final IBinder mBinder = new LocalBinder();
 
-    SensorManager sensorManager = null;
-    Sensor sensor = null;
-    StepsListener listener = null;
+    StepsListener listener;
 
-    Walk walk = null;
+    Stroll stroll;
 
     public void onStep() {
         // atomic, no read-ahead
@@ -51,8 +44,6 @@ public class StepsService extends Service {
     @Override
     public void onCreate() {
         log("onCreate");
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
     }
 
     @Override
@@ -75,21 +66,21 @@ public class StepsService extends Service {
     public void onDestroy() {
         log("onDestroy");
         // in case service gets destroyed without explicit stop()
-        if (walk == null)
+        if (stroll == null)
             return;
-        if (walk.isRunning())
-            walk.stop();
+        if (stroll.isRunning())
+            stroll.stop();
     }
 
     public void start() {
-        walk = Walk.start(this);
+        stroll = Stroll.start(this);
         setForeground();
     }
 
     public void stop() {
-        if (walk == null)
+        if (stroll == null)
             return;
-        walk.stop();
+        stroll.stop();
         stopForeground(true);
     }
 
@@ -98,11 +89,11 @@ public class StepsService extends Service {
     }
 
     public boolean isRunning() {
-        return walk != null && walk.isRunning();
+        return stroll != null && stroll.isRunning();
     }
 
     public int getSteps() {
-        return walk == null ? 0 : walk.getSteps();
+        return stroll == null ? 0 : stroll.getSteps();
     }
 
     private void setForeground() {
