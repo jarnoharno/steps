@@ -18,33 +18,42 @@ import java.util.Formatter;
 
 public class Stroll {
 
+    private static final String TAG = "Steps";
+
+    private void log(String msg) {
+        Log.d(TAG, "Stroll(" + System.identityHashCode(this) + "): " + msg);
+    }
+
     private SensorLoop sensorLoop;
-    private SensorBuffer sensorBuffer;
-    private AlgoLoop algoLoop;
-    private IOBuffer ioBuffer;
-    private IOLoop ioLoop;
+    //private SensorBuffer sensorBuffer;
+    //private AlgoLoop algoLoop;
+    //private IOBuffer ioBuffer;
+    //private IOLoop ioLoop;
     private boolean running;
 
-    Stroll(Context context) {
-        sensorBuffer = new SensorBuffer(1, 3);
-        ioBuffer = new IOBuffer(10);
-        sensorLoop = new SensorLoop(context, sensorBuffer);
-        algoLoop = new AlgoLoop(sensorBuffer, ioBuffer);
-        ioLoop = new IOLoop(context, sensorBuffer, ioBuffer);
-        running = false;
+    Stroll(Context context, StepsListener stepsListener) {
+        log("construct");
+        //sensorBuffer = new SensorBuffer(1, 3);
+        //ioBuffer = new IOBuffer(10);
+        sensorLoop = new SensorLoop(context, stepsListener);
+        //algoLoop = new AlgoLoop(sensorBuffer, ioBuffer);
+        //ioLoop = new IOLoop(context, sensorBuffer, ioBuffer);
+        //running = false;
     }
 
     public void start() {
-        ioLoop.start();
-        algoLoop.start();
+        log("start");
+        //ioLoop.start();
+        //algoLoop.start();
         sensorLoop.start();
         running = true;
     }
 
     public void stop() {
+        log("stop");
         sensorLoop.stop();
-        algoLoop.stop();
-        ioLoop.stop();
+        //algoLoop.stop();
+        //ioLoop.stop();
         running = false;
     }
 
@@ -52,12 +61,12 @@ public class Stroll {
         return running;
     }
 
-    public int getSteps() {
-        return sensorLoop.getSteps();
+    public int getSamples() {
+        return sensorLoop.getSamples();
     }
 
-    public static Stroll start(Context context) {
-        Stroll stroll = new Stroll(context);
+    public static Stroll start(Context context, StepsListener stepsListener) {
+        Stroll stroll = new Stroll(context, stepsListener);
         stroll.start();
         return stroll;
     }

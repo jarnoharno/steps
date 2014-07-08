@@ -8,20 +8,28 @@ import android.hardware.SensorManager;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
+import android.util.Log;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class SensorLoop {
+
+    private static final String TAG = "Steps";
+
+    private void log(String msg) {
+        Log.d(TAG, "SensorLoop(" + System.identityHashCode(this) + "): " + msg);
+    }
 
     private static final String SENSOR_LOOP_THREAD_NAME = "SensorLoop";
 
     private SensorManager sensorManager;
     private Sensor sensor;
 
-    private HandlerThread thread;
+    private HandlerThread thread = new HandlerThread(SENSOR_LOOP_THREAD_NAME);
     private Handler handler;
+    private StepsListener listener;
 
-    private SensorBuffer buffer;
-
-    private int steps;
+    private AtomicInteger samples = new AtomicInteger();
 
     private static final int HANDLER_QUIT = 1;
 
@@ -30,7 +38,6 @@ public class SensorLoop {
         public boolean handleMessage(Message msg) {
             if (msg.what != HANDLER_QUIT)
                 return false;
-            buffer.put(SensorBuffer.EntryType.Quit);
             thread.quit();
             return false;
         }
@@ -39,8 +46,9 @@ public class SensorLoop {
     private SensorEventListener sensorEventListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
-            buffer.put(SensorBuffer.EntryType.Accelerator, event.timestamp, event.values);
-            ++steps;
+            //log("onSensorChanged");
+            samples.incrementAndGet();
+            listener.onStepEvent();
         }
 
         @Override
@@ -48,15 +56,15 @@ public class SensorLoop {
         }
     };
 
-    SensorLoop(Context context, SensorBuffer buffer) {
-        this.buffer = buffer;
-        thread = new HandlerThread(SENSOR_LOOP_THREAD_NAME);
+    SensorLoop(Context context, StepsListener stepsListener) {
+        log("construct");
+        listener = stepsListener;
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        steps = 0;
     }
 
     public void start() {
+        log("start");
         thread.start();
         handler = new Handler(thread.getLooper(), handlerCallback);
         sensorManager.registerListener(sensorEventListener, sensor,
@@ -64,6 +72,7 @@ public class SensorLoop {
     }
 
     public void stop() {
+        log("stop");
         sensorManager.unregisterListener(sensorEventListener);
         handler.sendMessage(handler.obtainMessage(HANDLER_QUIT));
         try {
@@ -73,7 +82,7 @@ public class SensorLoop {
         }
     }
 
-    public int getSteps() {
-        return steps;
+    public int getSamples() {
+        return samples.get();
     }
 }

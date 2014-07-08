@@ -3,15 +3,12 @@ package com.hiit.steps;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
-import android.hardware.Sensor;
-import android.hardware.SensorManager;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
-public class StepsService extends Service {
+public class StepsService extends Service implements StepsListener {
 
     private static final String TAG = "Steps";
     private static final int SERVICE_NOTIFICATION_ID = 1;
@@ -29,12 +26,13 @@ public class StepsService extends Service {
 
     Stroll stroll;
 
-    public void onStep() {
+    @Override
+    public void onStepEvent() {
         // atomic, no read-ahead
         StepsListener l = listener;
         if (l == null)
             return;
-        l.onStep();
+        l.onStepEvent();
     }
 
     private void log(String msg) {
@@ -73,11 +71,13 @@ public class StepsService extends Service {
     }
 
     public void start() {
-        stroll = Stroll.start(this);
+        log("start");
+        stroll = Stroll.start(this, this);
         setForeground();
     }
 
     public void stop() {
+        log("stop");
         if (stroll == null)
             return;
         stroll.stop();
@@ -92,8 +92,8 @@ public class StepsService extends Service {
         return stroll != null && stroll.isRunning();
     }
 
-    public int getSteps() {
-        return stroll == null ? 0 : stroll.getSteps();
+    public int getSamples() {
+        return stroll == null ? 0 : stroll.getSamples();
     }
 
     private void setForeground() {

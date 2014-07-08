@@ -34,7 +34,7 @@ public class StepsActivity extends Activity {
             ToggleButton btn = (ToggleButton)findViewById(R.id.service_button);
             btn.setEnabled(true);
             btn.setChecked(StepsActivity.this.service.isRunning());
-            StepsActivity.this.updateSteps(StepsActivity.this.service.getSteps());
+            StepsActivity.this.updateSteps(StepsActivity.this.service.getSamples());
         }
 
         @Override
@@ -61,7 +61,7 @@ public class StepsActivity extends Activity {
                 case STEP:
                     if (service == null)
                         return;
-                    updateSteps(service.getSteps());
+                    updateSteps(service.getSamples());
                 default:
                     super.handleMessage(msg);
             }
@@ -70,8 +70,9 @@ public class StepsActivity extends Activity {
 
     // thread-safe
     private StepsListener listener = new StepsListener() {
+
         @Override
-        public void onStep() {
+        public void onStepEvent() {
             Message msg = handler.obtainMessage(STEP);
             handler.sendMessage(msg);
         }
