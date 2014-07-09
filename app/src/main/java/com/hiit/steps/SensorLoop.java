@@ -51,18 +51,16 @@ public class SensorLoop {
     private SensorEventListener sensorEventListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
-            //log("onSensorChanged");
             samples.incrementAndGet();
             listener.onStepEvent();
 
             // fill buffer entry
-            int index = buffer.index * buffer.bufferWidth;
+            int i = buffer.index * buffer.bufferWidth;
             int buf[] = buffer.buffer;
-            buf[index + 0] = event.sensor.getType();
-            buf[index + 1] = (int)event.timestamp >> 32;
-            buf[index + 2] = (int)event.timestamp;
-            for (int i = 0; i < event.values.length; ++i) {
-                buf[index + 3 + i] = Float.floatToRawIntBits(event.values[i]);
+            buf[i] = event.sensor.getType();
+            Conversion.longToIntArray(event.timestamp, buf, i + 1);
+            for (int j = 0; j < event.values.length; ++j) {
+                buf[i + 3 + j] = Float.floatToRawIntBits(event.values[j]);
             }
             buffer.next();
         }

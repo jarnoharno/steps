@@ -1,5 +1,7 @@
 package com.hiit.steps;
 
+import android.util.Log;
+
 import java.util.concurrent.SynchronousQueue;
 
 public class CachedSynchronousQueue<T> {
@@ -22,7 +24,10 @@ public class CachedSynchronousQueue<T> {
     public void put() {
         T t = obtain();
         first = !first;
+        if (queue.offer(t))
+            return;
         try {
+            Log.w("CachedSynchronousQueue", "Waiting for consumer");
             queue.put(t);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

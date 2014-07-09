@@ -24,9 +24,9 @@ public class IOLoop {
     private Thread thread;
     private Context context;
 
-    private File file = null;
-    private FileOutputStream stream = null;
-    private Formatter formatter = null;
+    private File file;
+    private FileOutputStream stream;
+    private Formatter formatter;
 
     private WindowBuffer buffer;
 
@@ -63,7 +63,7 @@ public class IOLoop {
             int[] buf = buffer.buffer;
             int i = index * buffer.bufferWidth;
             int type = buf[i];
-            long timestamp = (long)buf[i + 1] << 32 | buf[index + 2] & 0xFFFFFFFFL;
+            long timestamp = Conversion.intArrayToLong(buf, i + 1);
             switch (type) {
                 case Sensor.TYPE_ACCELEROMETER:
                     formatter.format("ACC %d", timestamp);
@@ -78,6 +78,7 @@ public class IOLoop {
                     writeFloats(buf, i + 3, 6);
                     break;
             }
+            formatter.format("\n");
         }
 
         private void writeFloats(int[] buf, int offset, int length) {
