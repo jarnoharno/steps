@@ -66,23 +66,23 @@ public class IOLoop {
             long timestamp = Conversion.intArrayToLong(buf, i + 1);
             switch (type) {
                 case Sensor.TYPE_ACCELEROMETER:
-                    formatter.format("ACC %d", timestamp);
+                    formatter.format("acc %d", timestamp);
                     writeFloats(buf, i + 3, 3);
                     break;
                 case Sensor.TYPE_GYROSCOPE:
-                    formatter.format("GYR %d", timestamp);
+                    formatter.format("gyr %d", timestamp);
                     writeFloats(buf, i + 3, 3);
                     break;
                 case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
-                    formatter.format("GYU %d", timestamp);
+                    formatter.format("gyu %d", timestamp);
                     writeFloats(buf, i + 3, 6);
                     break;
                 case Sensor.TYPE_MAGNETIC_FIELD:
-                    formatter.format("MAG %d", timestamp);
+                    formatter.format("mag %d", timestamp);
                     writeFloats(buf, i + 3, 3);
                     break;
                 case Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED:
-                    formatter.format("MAU %d", timestamp);
+                    formatter.format("mau %d", timestamp);
                     writeFloats(buf, i + 3, 6);
                     break;
             }
