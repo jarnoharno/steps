@@ -25,7 +25,9 @@ public class SensorLoop {
     private SensorManager sensorManager;
     private int[] sensorTypes = {
             Sensor.TYPE_ACCELEROMETER,
-            //Sensor.TYPE_GYROSCOPE_UNCALIBRATED, // doesn't work for galaxy s3???
+            Sensor.TYPE_GYROSCOPE,
+            Sensor.TYPE_MAGNETIC_FIELD,
+            Sensor.TYPE_GYROSCOPE_UNCALIBRATED, // doesn't work for galaxy s3???
             Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED
     };
     private Sensor[] sensors = new Sensor[sensorTypes.length];

@@ -18,9 +18,9 @@ case 'pull':
   if (!pulls)
     pulls = [ storage ]
   pulls.each({
-    println(run('adb -d pull', it, 'data').err.text.trim())
+    print(run('adb -d pull', it, 'data').err.text)
   })
   break
 default:
-  println(run('adb -d shell cd', storage, '&&', *args).text.trim())
+  print(run('adb -d shell cd', storage, '&&', *args).text)
 }
