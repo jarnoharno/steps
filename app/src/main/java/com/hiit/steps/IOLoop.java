@@ -69,12 +69,20 @@ public class IOLoop {
                     formatter.format("ACC %d", timestamp);
                     writeFloats(buf, i + 3, 3);
                     break;
-                case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
+                case Sensor.TYPE_GYROSCOPE:
                     formatter.format("GYR %d", timestamp);
+                    writeFloats(buf, i + 3, 3);
+                    break;
+                case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
+                    formatter.format("GYU %d", timestamp);
                     writeFloats(buf, i + 3, 6);
                     break;
-                case Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED:
+                case Sensor.TYPE_MAGNETIC_FIELD:
                     formatter.format("MAG %d", timestamp);
+                    writeFloats(buf, i + 3, 3);
+                    break;
+                case Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED:
+                    formatter.format("MAU %d", timestamp);
                     writeFloats(buf, i + 3, 6);
                     break;
             }

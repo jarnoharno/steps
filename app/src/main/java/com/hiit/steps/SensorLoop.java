@@ -23,9 +23,12 @@ public class SensorLoop {
     private static final String SENSOR_LOOP_THREAD_NAME = "SensorLoop";
 
     private SensorManager sensorManager;
-    private Sensor sensorAccelerometer;
-    private Sensor sensorGyroscope;
-    private Sensor sensorMagnetic;
+    private int[] sensorTypes = {
+            Sensor.TYPE_ACCELEROMETER,
+            //Sensor.TYPE_GYROSCOPE_UNCALIBRATED, // doesn't work for galaxy s3???
+            Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED
+    };
+    private Sensor[] sensors = new Sensor[sensorTypes.length];
 
     private HandlerThread thread = new HandlerThread(SENSOR_LOOP_THREAD_NAME);
     private Handler handler;
@@ -75,21 +78,19 @@ public class SensorLoop {
         this.buffer = buffer;
         listener = stepsListener;
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-        sensorAccelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        sensorGyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED);
-        sensorMagnetic = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED);
+        for (int i = 0; i < sensorTypes.length; ++i) {
+            sensors[i] = sensorManager.getDefaultSensor(sensorTypes[i]);
+        }
     }
 
     public void start() {
         log("start");
         thread.start();
         handler = new Handler(thread.getLooper(), handlerCallback);
-        sensorManager.registerListener(sensorEventListener, sensorAccelerometer,
-                SensorManager.SENSOR_DELAY_FASTEST, handler);
-        sensorManager.registerListener(sensorEventListener, sensorGyroscope,
-                SensorManager.SENSOR_DELAY_FASTEST, handler);
-        sensorManager.registerListener(sensorEventListener, sensorMagnetic,
-                SensorManager.SENSOR_DELAY_FASTEST, handler);
+        for (Sensor sensor: sensors) {
+            sensorManager.registerListener(sensorEventListener, sensor,
+                    SensorManager.SENSOR_DELAY_FASTEST, handler);
+        }
     }
 
     public void stop() {
@@ -105,5 +106,11 @@ public class SensorLoop {
 
     public int getSamples() {
         return samples.get();
+    }
+
+    private void logSensors() {
+        for (Sensor sensor : sensorManager.getSensorList(Sensor.TYPE_ALL)) {
+            log(sensor.toString());
+        }
     }
 }
