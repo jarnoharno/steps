@@ -2,7 +2,7 @@ package com.hiit.steps;
 
 public class AlgoLoop {
 
-    private SensorBuffer sensorBuffer;
+    private WindowBuffer windowBuffer;
     private Thread thread;
 
     private IOBuffer ioBuffer;
@@ -11,41 +11,39 @@ public class AlgoLoop {
         @Override
         public void run() {
             for (;;) {
-                SensorBuffer.Message message = sensorBuffer.take();
-                transfer(message);
-                if (message.type == SensorBuffer.Message.Type.Quit) {
+                WindowBuffer.Window window = windowBuffer.take();
+                transfer(window);
+                if (window.command == WindowBuffer.Window.Command.Quit) {
                     ioBuffer.put(IOBuffer.EntryType.Quit);
                     return;
                 }
             }
         }
 
-        public void transfer(SensorBuffer.Message message) {
-            if (message.end >= message.begin) {
-                for (int i = message.begin; i < message.end; ++i) {
+        public void transfer(WindowBuffer.Window window) {
+            if (window.end >= window.begin) {
+                for (int i = window.begin; i < window.end; ++i) {
                     transferEntry(i);
                 }
                 return;
             }
-            for (int i = message.begin; i < sensorBuffer.bufferSize; ++i) {
+            for (int i = window.begin; i < windowBuffer.buffer.length; ++i) {
                 transferEntry(i);
             }
-            for (int i = 0; i < message.end; ++i) {
+            for (int i = 0; i < window.end; ++i) {
                 transferEntry(i);
             }
 
         }
 
         public void transferEntry(int index) {
-            ioBuffer.put(IOBuffer.EntryType.Accelerator,
-                    sensorBuffer.timestampEntries[index],
-                    sensorBuffer.floatEntries[index]);
+            //ioBuffer.put(windowBuffer.buffer[index]);
         }
     };
 
-    AlgoLoop(SensorBuffer sensorBuffer, IOBuffer ioBuffer) {
+    AlgoLoop(WindowBuffer windowBuffer, IOBuffer ioBuffer) {
         this.thread = new Thread(runnable);
-        this.sensorBuffer = sensorBuffer;
+        this.windowBuffer = windowBuffer;
         this.ioBuffer = ioBuffer;
     }
 

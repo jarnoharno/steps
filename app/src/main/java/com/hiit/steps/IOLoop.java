@@ -1,6 +1,7 @@
 package com.hiit.steps;
 
 import android.content.Context;
+import android.hardware.Sensor;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -11,10 +12,14 @@ import java.util.Formatter;
 
 public class IOLoop {
 
+    private static final String TAG = "Steps";
+
+    private void log(String msg) {
+        Log.d(TAG, "IOLoop(" + System.identityHashCode(this) + "): " + msg);
+    }
+
     private static final String FILE_PREFIX = "steps";
     private static final String FILE_SUFFIX = "";
-
-    private static final String TAG = "Steps";
 
     private Thread thread;
     private Context context;
@@ -23,49 +28,69 @@ public class IOLoop {
     private FileOutputStream stream = null;
     private Formatter formatter = null;
 
-    private IOBuffer ioBuffer;
+    private WindowBuffer buffer;
 
     private Runnable runnable = new Runnable() {
         @Override
         public void run() {
             for (;;) {
-                IOBuffer.Message message = ioBuffer.take();
-                transfer(message);
-                if (message.type == IOBuffer.Message.Type.Quit) {
+                WindowBuffer.Window window = buffer.take();
+                log("received window");
+                writeWindow(window);
+                if (window.command == WindowBuffer.Window.Command.Quit) {
                     return;
                 }
             }
         }
 
-        public void transfer(IOBuffer.Message message) {
-            if (message.end >= message.begin) {
-                for (int i = message.begin; i < message.end; ++i) {
-                    transferEntry(i);
+        public void writeWindow(WindowBuffer.Window window) {
+            if (window.end >= window.begin) {
+                for (int i = window.begin; i < window.end; ++i) {
+                    write(i);
                 }
                 return;
             }
-            for (int i = message.begin; i < ioBuffer.bufferSize; ++i) {
-                transferEntry(i);
+            for (int i = window.begin; i < buffer.bufferLength; ++i) {
+                write(i);
             }
-            for (int i = 0; i < message.end; ++i) {
-                transferEntry(i);
+            for (int i = 0; i < window.end; ++i) {
+                write(i);
             }
 
         }
 
-        public void transferEntry(int index) {
-            formatter.format("%d %f %f %f\n",
-                    ioBuffer.timestampEntries[index],
-                    ioBuffer.floatEntries[index][0],
-                    ioBuffer.floatEntries[index][1],
-                    ioBuffer.floatEntries[index][2]);
+        private void write(int index) {
+            int[] buf = buffer.buffer;
+            int i = index * buffer.bufferWidth;
+            int type = buf[i];
+            long timestamp = (long)buf[i + 1] << 32 | buf[index + 2] & 0xFFFFFFFFL;
+            switch (type) {
+                case Sensor.TYPE_ACCELEROMETER:
+                    formatter.format("ACC %d", timestamp);
+                    writeFloats(buf, i + 3, 3);
+                    break;
+                case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
+                    formatter.format("GYR %d", timestamp);
+                    writeFloats(buf, i + 3, 6);
+                    break;
+                case Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED:
+                    formatter.format("MAG %d", timestamp);
+                    writeFloats(buf, i + 3, 6);
+                    break;
+            }
         }
+
+        private void writeFloats(int[] buf, int offset, int length) {
+            for (int i = 0; i < length; ++i) {
+                formatter.format(" %f", Float.intBitsToFloat(buf[offset + i]));
+            }
+         }
     };
 
-    IOLoop(Context context, SensorBuffer sensorBuffer, IOBuffer ioBuffer) {
+    IOLoop(Context context, WindowBuffer buffer) {
         this.context = context;
         this.thread = new Thread(runnable);
-        this.ioBuffer = ioBuffer;
+        this.buffer = buffer;
         try {
             file = File.createTempFile(FILE_PREFIX, FILE_SUFFIX,
                     context.getCacheDir());
@@ -78,11 +103,13 @@ public class IOLoop {
     }
 
     public void start() {
+        log("start");
         thread.start();
     }
 
     public void stop() {
         // just wait and hope the source quits the loop
+        log("stop");
         try {
             thread.join();
             formatter.close();

@@ -23,13 +23,17 @@ public class SensorLoop {
     private static final String SENSOR_LOOP_THREAD_NAME = "SensorLoop";
 
     private SensorManager sensorManager;
-    private Sensor sensor;
+    private Sensor sensorAccelerometer;
+    private Sensor sensorGyroscope;
+    private Sensor sensorMagnetic;
 
     private HandlerThread thread = new HandlerThread(SENSOR_LOOP_THREAD_NAME);
     private Handler handler;
     private StepsListener listener;
 
     private AtomicInteger samples = new AtomicInteger();
+
+    private WindowBuffer buffer;
 
     private static final int HANDLER_QUIT = 1;
 
@@ -38,6 +42,7 @@ public class SensorLoop {
         public boolean handleMessage(Message msg) {
             if (msg.what != HANDLER_QUIT)
                 return false;
+            buffer.quit();
             thread.quit();
             return false;
         }
@@ -49,6 +54,17 @@ public class SensorLoop {
             //log("onSensorChanged");
             samples.incrementAndGet();
             listener.onStepEvent();
+
+            // fill buffer entry
+            int index = buffer.index * buffer.bufferWidth;
+            int buf[] = buffer.buffer;
+            buf[index + 0] = event.sensor.getType();
+            buf[index + 1] = (int)event.timestamp >> 32;
+            buf[index + 2] = (int)event.timestamp;
+            for (int i = 0; i < event.values.length; ++i) {
+                buf[index + 3 + i] = Float.floatToRawIntBits(event.values[i]);
+            }
+            buffer.next();
         }
 
         @Override
@@ -56,18 +72,25 @@ public class SensorLoop {
         }
     };
 
-    SensorLoop(Context context, StepsListener stepsListener) {
+    SensorLoop(Context context, WindowBuffer buffer, StepsListener stepsListener) {
         log("construct");
+        this.buffer = buffer;
         listener = stepsListener;
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        sensorAccelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        sensorGyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED);
+        sensorMagnetic = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED);
     }
 
     public void start() {
         log("start");
         thread.start();
         handler = new Handler(thread.getLooper(), handlerCallback);
-        sensorManager.registerListener(sensorEventListener, sensor,
+        sensorManager.registerListener(sensorEventListener, sensorAccelerometer,
+                SensorManager.SENSOR_DELAY_FASTEST, handler);
+        sensorManager.registerListener(sensorEventListener, sensorGyroscope,
+                SensorManager.SENSOR_DELAY_FASTEST, handler);
+        sensorManager.registerListener(sensorEventListener, sensorMagnetic,
                 SensorManager.SENSOR_DELAY_FASTEST, handler);
     }
 

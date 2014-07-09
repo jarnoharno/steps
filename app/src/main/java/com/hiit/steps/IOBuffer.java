@@ -12,7 +12,7 @@ public class IOBuffer {
     public float floatEntries[][];
     private int index;
     private int minMaxLag;
-    private SyncPair<Message> syncPair = new SyncPair<Message>(messageFactory);
+    private CachedSynchronousQueue<Message> cachedSynchronousQueue = new CachedSynchronousQueue<Message>(messageFactory);
 
     public static class Message {
         public static enum Type {
@@ -25,11 +25,11 @@ public class IOBuffer {
     }
 
     private void syncPairPut(Message.Type type, int begin, int end) {
-        Message message = syncPair.obtain();
+        Message message = cachedSynchronousQueue.obtain();
         message.type = type;
         message.begin = begin;
         message.end = end;
-        syncPair.put();
+        cachedSynchronousQueue.put();
     }
 
     IOBuffer(int minMaxLag) {
@@ -73,11 +73,11 @@ public class IOBuffer {
     }
 
     public Message take() {
-        return syncPair.take();
+        return cachedSynchronousQueue.take();
     }
 
-    private static SyncPair.Factory<Message> messageFactory =
-            new SyncPair.Factory<Message>() {
+    private static TypeFactory<Message> messageFactory =
+            new AbstractTypeFactory<Message>() {
                 @Override
                 public Message create() {
                     return new Message();

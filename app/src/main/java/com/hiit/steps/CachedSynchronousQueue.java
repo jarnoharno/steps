@@ -2,19 +2,15 @@ package com.hiit.steps;
 
 import java.util.concurrent.SynchronousQueue;
 
-public class SyncPair<T> {
+public class CachedSynchronousQueue<T> {
 
-    public static interface Factory<T> {
-        public T create();
-    }
-
-    private SynchronousQueue<T> queue;
+    private SynchronousQueue<T> queue = new SynchronousQueue<T>();
 
     private T t1;
     private T t2;
     private boolean first;
 
-    SyncPair(Factory<T> factory) {
+    CachedSynchronousQueue(TypeFactory<T> factory) {
         t1 = factory.create();
         t2 = factory.create();
     }

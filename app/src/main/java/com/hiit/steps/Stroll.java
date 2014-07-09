@@ -25,25 +25,27 @@ public class Stroll {
     }
 
     private SensorLoop sensorLoop;
-    //private SensorBuffer sensorBuffer;
+    private WindowBuffer sensorBuffer;
+    //private WindowBuffer sensorBuffer;
     //private AlgoLoop algoLoop;
     //private IOBuffer ioBuffer;
-    //private IOLoop ioLoop;
+    private IOLoop ioLoop;
     private boolean running;
 
     Stroll(Context context, StepsListener stepsListener) {
         log("construct");
-        //sensorBuffer = new SensorBuffer(1, 3);
+        //sensorBuffer = new WindowBuffer(1, 3);
         //ioBuffer = new IOBuffer(10);
-        sensorLoop = new SensorLoop(context, stepsListener);
+        sensorBuffer = new WindowBuffer(9, 256, 0);
+        sensorLoop = new SensorLoop(context, sensorBuffer, stepsListener);
         //algoLoop = new AlgoLoop(sensorBuffer, ioBuffer);
-        //ioLoop = new IOLoop(context, sensorBuffer, ioBuffer);
+        ioLoop = new IOLoop(context, sensorBuffer);
         //running = false;
     }
 
     public void start() {
         log("start");
-        //ioLoop.start();
+        ioLoop.start();
         //algoLoop.start();
         sensorLoop.start();
         running = true;
@@ -53,7 +55,7 @@ public class Stroll {
         log("stop");
         sensorLoop.stop();
         //algoLoop.stop();
-        //ioLoop.stop();
+        ioLoop.stop();
         running = false;
     }
 
