@@ -1,11 +1,26 @@
 #!/usr/bin/env groovy
 
-def runShell(Object... args) {
-  def shell = 'adb -d shell'
-  [shell, *args].join(' ').execute()
+if (!args) {
+  println 'Usage: steps args...'
+  System.exit(1)
 }
 
-def storage = runShell('echo \$EXTERNAL_STORAGE').text.trim()
+def run(Object... args) {
+  args.join(' ').execute()
+}
+
+def storage = run('adb -d shell echo \$EXTERNAL_STORAGE').text.trim()
 storage += '/Android/data/com.hiit.steps/files'
 
-print runShell('cd', storage, '&&', *args).text
+switch (args[0]) {
+case 'pull':
+  def pulls = args.drop(1).collect({ storage + '/' + it })
+  if (!pulls)
+    pulls = [ storage ]
+  pulls.each({
+    println(run('adb -d pull', it, 'data').err.text.trim())
+  })
+  break
+default:
+  println(run('adb -d shell cd', storage, '&&', *args).text.trim())
+}
