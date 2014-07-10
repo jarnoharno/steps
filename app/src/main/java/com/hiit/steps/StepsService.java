@@ -22,9 +22,9 @@ public class StepsService extends Service implements StepsListener {
     // Binder given to clients
     private final IBinder mBinder = new LocalBinder();
 
-    StepsListener listener;
+    private volatile StepsListener listener;
 
-    Stroll stroll;
+    private Stroll stroll;
 
     @Override
     public void onSampleEvent() {
