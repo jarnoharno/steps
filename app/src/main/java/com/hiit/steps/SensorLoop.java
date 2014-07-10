@@ -38,7 +38,7 @@ public class SensorLoop {
 
     private AtomicInteger samples = new AtomicInteger();
 
-    private WindowBuffer buffer;
+    private CachedBufferQueue<SensorEvent> queue;
 
     private static final int HANDLER_QUIT = 1;
 
@@ -47,7 +47,7 @@ public class SensorLoop {
         public boolean handleMessage(Message msg) {
             if (msg.what != HANDLER_QUIT)
                 return false;
-            buffer.quit();
+            queue.quit();
             thread.quit();
             return false;
         }
@@ -58,16 +58,8 @@ public class SensorLoop {
         public void onSensorChanged(SensorEvent event) {
             samples.incrementAndGet();
             listener.onStepEvent();
-
-            // fill buffer entry
-            int i = buffer.index * buffer.bufferWidth;
-            int buf[] = buffer.buffer;
-            buf[i] = event.sensor.getType();
-            Conversion.longToIntArray(event.timestamp, buf, i + 1);
-            for (int j = 0; j < event.values.length; ++j) {
-                buf[i + 3 + j] = Float.floatToRawIntBits(event.values[j]);
-            }
-            buffer.next();
+            queue.obtain().buffer.put(event);
+            queue.put();
         }
 
         @Override
@@ -75,9 +67,11 @@ public class SensorLoop {
         }
     };
 
-    SensorLoop(Context context, WindowBuffer buffer, StepsListener stepsListener) {
+    SensorLoop(Context context,
+               CachedBufferQueue<SensorEvent> queue,
+               StepsListener stepsListener) {
         log("construct");
-        this.buffer = buffer;
+        this.queue = queue;
         listener = stepsListener;
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         for (int i = 0; i < sensorTypes.length; ++i) {

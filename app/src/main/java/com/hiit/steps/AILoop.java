@@ -1,8 +1,8 @@
 package com.hiit.steps;
 
-public class AlgoLoop {
+public class AILoop {
 
-    private WindowBuffer windowBuffer;
+    private WindowQueue windowQueue;
     private Thread thread;
 
     private IOBuffer ioBuffer;
@@ -11,23 +11,23 @@ public class AlgoLoop {
         @Override
         public void run() {
             for (;;) {
-                WindowBuffer.Window window = windowBuffer.take();
+                WindowQueue.Window window = windowQueue.take();
                 transfer(window);
-                if (window.command == WindowBuffer.Window.Command.Quit) {
+                if (window.command == WindowQueue.Window.Command.Quit) {
                     ioBuffer.put(IOBuffer.EntryType.Quit);
                     return;
                 }
             }
         }
 
-        public void transfer(WindowBuffer.Window window) {
+        public void transfer(WindowQueue.Window window) {
             if (window.end >= window.begin) {
                 for (int i = window.begin; i < window.end; ++i) {
                     transferEntry(i);
                 }
                 return;
             }
-            for (int i = window.begin; i < windowBuffer.buffer.length; ++i) {
+            for (int i = window.begin; i < windowQueue.buffer.length; ++i) {
                 transferEntry(i);
             }
             for (int i = 0; i < window.end; ++i) {
@@ -41,9 +41,9 @@ public class AlgoLoop {
         }
     };
 
-    AlgoLoop(WindowBuffer windowBuffer, IOBuffer ioBuffer) {
+    AILoop(WindowQueue windowQueue, IOBuffer ioBuffer) {
         this.thread = new Thread(runnable);
-        this.windowBuffer = windowBuffer;
+        this.windowQueue = windowQueue;
         this.ioBuffer = ioBuffer;
     }
 

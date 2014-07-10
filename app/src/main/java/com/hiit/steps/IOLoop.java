@@ -2,6 +2,7 @@ package com.hiit.steps;
 
 import android.content.Context;
 import android.hardware.Sensor;
+import android.hardware.SensorEvent;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -28,78 +29,61 @@ public class IOLoop {
     private FileOutputStream stream;
     private Formatter formatter;
 
-    private WindowBuffer buffer;
+    private CachedBufferQueue<SensorEvent> queue;
 
     private Runnable runnable = new Runnable() {
         @Override
         public void run() {
             for (;;) {
-                WindowBuffer.Window window = buffer.take();
+                CachedBufferQueue.Message<SensorEvent> message = queue.take();
                 log("received window");
-                writeWindow(window);
-                if (window.command == WindowBuffer.Window.Command.Quit) {
+                writeBuffer(message.buffer);
+                if (message.getCommand() == CachedBufferQueue.Message.Command.Quit) {
                     return;
                 }
             }
         }
 
-        public void writeWindow(WindowBuffer.Window window) {
-            if (window.end >= window.begin) {
-                for (int i = window.begin; i < window.end; ++i) {
-                    write(i);
-                }
-                return;
+        public void writeBuffer(Buffer<SensorEvent> buffer) {
+            for (int i = 0; i < buffer.getEnd(); ++i) {
+                write(buffer.get(i));
             }
-            for (int i = window.begin; i < buffer.bufferLength; ++i) {
-                write(i);
-            }
-            for (int i = 0; i < window.end; ++i) {
-                write(i);
-            }
-
         }
 
-        private void write(int index) {
-            int[] buf = buffer.buffer;
-            int i = index * buffer.bufferWidth;
-            int type = buf[i];
-            long timestamp = Conversion.intArrayToLong(buf, i + 1);
-            switch (type) {
+        private void write(SensorEvent event) {
+            switch (event.sensor.getType()) {
                 case Sensor.TYPE_ACCELEROMETER:
-                    formatter.format("acc %d", timestamp);
-                    writeFloats(buf, i + 3, 3);
+                    formatter.format("acc");
                     break;
                 case Sensor.TYPE_GYROSCOPE:
-                    formatter.format("gyr %d", timestamp);
-                    writeFloats(buf, i + 3, 3);
+                    formatter.format("gyr");
                     break;
                 case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
-                    formatter.format("gyu %d", timestamp);
-                    writeFloats(buf, i + 3, 6);
+                    formatter.format("gyu");
                     break;
                 case Sensor.TYPE_MAGNETIC_FIELD:
-                    formatter.format("mag %d", timestamp);
-                    writeFloats(buf, i + 3, 3);
+                    formatter.format("mag");
                     break;
                 case Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED:
-                    formatter.format("mau %d", timestamp);
-                    writeFloats(buf, i + 3, 6);
+                    formatter.format("mau");
                     break;
             }
+            formatter.format(" %d", event.timestamp);
+            writeFloats(event.values);
             formatter.format("\n");
         }
 
-        private void writeFloats(int[] buf, int offset, int length) {
-            for (int i = 0; i < length; ++i) {
-                formatter.format(" %f", Float.intBitsToFloat(buf[offset + i]));
+        private void writeFloats(float[] buf) {
+            for (int i = 0; i < buf.length; ++i) {
+                formatter.format(" %f", buf[i]);
             }
          }
     };
 
-    IOLoop(Context context, WindowBuffer buffer) {
+    IOLoop(Context context, CachedBufferQueue<SensorEvent> queue) {
         this.context = context;
         this.thread = new Thread(runnable);
-        this.buffer = buffer;
+        this.queue = queue;
         try {
             file = File.createTempFile(FILE_PREFIX, FILE_SUFFIX,
                     context.getCacheDir());

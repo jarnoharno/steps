@@ -4,7 +4,7 @@ import android.util.Log;
 
 import java.util.concurrent.SynchronousQueue;
 
-public class CachedSynchronousQueue<T> {
+public class CachedSynchronousQueue<T> implements CachedQueue<T> {
 
     private SynchronousQueue<T> queue = new SynchronousQueue<T>();
 
@@ -17,10 +17,12 @@ public class CachedSynchronousQueue<T> {
         t2 = factory.create();
     }
 
+    @Override
     public T obtain() {
         return first ? t1 : t2;
     }
 
+    @Override
     public void put() {
         T t = obtain();
         first = !first;
@@ -34,6 +36,7 @@ public class CachedSynchronousQueue<T> {
         }
     }
 
+    @Override
     public T take() {
         try {
             return queue.take();

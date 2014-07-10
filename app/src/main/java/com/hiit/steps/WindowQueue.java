@@ -1,6 +1,6 @@
 package com.hiit.steps;
 
-public class WindowBuffer {
+public class WindowQueue {
 
     public int bufferLength;
     public int bufferWidth;
@@ -31,7 +31,7 @@ public class WindowBuffer {
         cachedSynchronousQueue.put();
     }
 
-    WindowBuffer(int width, int minMaxLag, int maxMinWindow) {
+    WindowQueue(int width, int minMaxLag, int maxMinWindow) {
         this.bufferLength = maxMinWindow + 2 * minMaxLag;
         this.bufferWidth = width;
         this.buffer = new int[bufferLength * bufferWidth];
