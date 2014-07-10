@@ -30,8 +30,16 @@ public class Stroll {
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                 WAKE_LOCK_TAG);
 
-        sensorQueue = new CachedIntArrayBufferQueue(100, 10); // ~1 s lag
-        ioQueue = new CachedIntArrayBufferQueue(1000, 10); // ~10 s lag
+        // The following rates were detected with SENSOR_DELAY_FASTEST on galaxy s3:
+        //
+        // Sensor.TYPE_ACCELEROMETER                 10 Hz
+        // Sensor.TYPE_GYROSCOPE                     5 Hz
+        // Sensor.TYPE_MAGNETIC_FIELD                10 Hz
+        // Sensor.TYPE_GYROSCOPE_UNCALIBRATED        NA
+        // Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED   10 Hz
+
+        sensorQueue = new CachedIntArrayBufferQueue(100, 10); // ~200 ms lag with all sensors on
+        ioQueue = new CachedIntArrayBufferQueue(1000, 10); // ~2 s lag with all sensors on
         ioLoop = new IOLoop(context, ioQueue);
         aiLoop = new AILoop(context, sensorQueue, ioQueue, stepsListener);
         sensorLoop = new SensorLoop(context, sensorQueue, stepsListener);
