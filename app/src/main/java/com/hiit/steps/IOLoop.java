@@ -29,58 +29,33 @@ public class IOLoop {
     private FileOutputStream stream;
     private Formatter formatter;
 
-    private CachedBufferQueue<SensorEvent> queue;
+    private CachedIntArrayBufferQueue queue;
+
+    private int samples = 0;
 
     private Runnable runnable = new Runnable() {
         @Override
         public void run() {
             for (;;) {
-                CachedBufferQueue.Message<SensorEvent> message = queue.take();
+                CachedIntArrayBufferQueue.Message message = queue.take();
                 log("received window");
-                writeBuffer(message.buffer);
-                if (message.getCommand() == CachedBufferQueue.Message.Command.Quit) {
+                writeBuffer(message.data);
+                if (message.getCommand() == CachedIntArrayBufferQueue.Command.Quit) {
                     return;
                 }
             }
         }
 
-        public void writeBuffer(Buffer<SensorEvent> buffer) {
+        public void writeBuffer(IntArrayBuffer buffer) {
             for (int i = 0; i < buffer.getEnd(); ++i) {
-                write(buffer.get(i));
+                ++samples;
+                SensorEventSerializer.formatIntArray(buffer.buffer, buffer.get(i), formatter);
             }
         }
 
-        private void write(SensorEvent event) {
-            switch (event.sensor.getType()) {
-                case Sensor.TYPE_ACCELEROMETER:
-                    formatter.format("acc");
-                    break;
-                case Sensor.TYPE_GYROSCOPE:
-                    formatter.format("gyr");
-                    break;
-                case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
-                    formatter.format("gyu");
-                    break;
-                case Sensor.TYPE_MAGNETIC_FIELD:
-                    formatter.format("mag");
-                    break;
-                case Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED:
-                    formatter.format("mau");
-                    break;
-            }
-            formatter.format(" %d", event.timestamp);
-            writeFloats(event.values);
-            formatter.format("\n");
-        }
-
-        private void writeFloats(float[] buf) {
-            for (int i = 0; i < buf.length; ++i) {
-                formatter.format(" %f", buf[i]);
-            }
-         }
     };
 
-    IOLoop(Context context, CachedBufferQueue<SensorEvent> queue) {
+    IOLoop(Context context, CachedIntArrayBufferQueue queue) {
         this.context = context;
         this.thread = new Thread(runnable);
         this.queue = queue;
@@ -105,6 +80,7 @@ public class IOLoop {
         log("stop");
         try {
             thread.join();
+            log(samples + " samples received");
             formatter.close();
             Log.d(TAG, "wrote " + file.toString());
 

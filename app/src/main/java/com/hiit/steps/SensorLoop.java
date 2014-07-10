@@ -38,7 +38,7 @@ public class SensorLoop {
 
     private AtomicInteger samples = new AtomicInteger();
 
-    private CachedBufferQueue<SensorEvent> queue;
+    private CachedIntArrayBufferQueue queue;
 
     private static final int HANDLER_QUIT = 1;
 
@@ -57,8 +57,8 @@ public class SensorLoop {
         @Override
         public void onSensorChanged(SensorEvent event) {
             samples.incrementAndGet();
-            listener.onStepEvent();
-            queue.obtain().buffer.put(event);
+            listener.onSampleEvent();
+            SensorEventSerializer.toIntArray(event, queue.obtain().data);
             queue.put();
         }
 
@@ -68,7 +68,7 @@ public class SensorLoop {
     };
 
     SensorLoop(Context context,
-               CachedBufferQueue<SensorEvent> queue,
+               CachedIntArrayBufferQueue queue,
                StepsListener stepsListener) {
         log("construct");
         this.queue = queue;
@@ -95,6 +95,7 @@ public class SensorLoop {
         handler.sendMessage(handler.obtainMessage(HANDLER_QUIT));
         try {
             thread.join();
+            log(samples.get() + " samples sent");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

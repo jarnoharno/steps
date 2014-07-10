@@ -2,7 +2,7 @@ package com.hiit.steps;
 
 public class Conversion {
     public static long intsToLong(int a, int b) {
-        return (long) a << 32 | b & 0xFFFFFFFFL;
+        return (long) a << 32 | b & 0xffffffffl;
     }
 
     public static int longToIntA(long l) {
@@ -18,7 +18,7 @@ public class Conversion {
         dst[dstPos + 1] = longToIntB(l);
     }
 
-    public static long intArrayToLong(int[] dst, int dstPos) {
-        return intsToLong(dst[dstPos], dst[dstPos + 1]);
+    public static long intArrayToLong(int[] src, int srcPos) {
+        return intsToLong(src[srcPos], src[srcPos + 1]);
     }
 }

@@ -27,6 +27,15 @@ public class StepsService extends Service implements StepsListener {
     Stroll stroll;
 
     @Override
+    public void onSampleEvent() {
+        // atomic, no read-ahead
+        StepsListener l = listener;
+        if (l == null)
+            return;
+        l.onSampleEvent();
+    }
+
+    @Override
     public void onStepEvent() {
         // atomic, no read-ahead
         StepsListener l = listener;
@@ -94,6 +103,10 @@ public class StepsService extends Service implements StepsListener {
 
     public int getSamples() {
         return stroll == null ? 0 : stroll.getSamples();
+    }
+
+    public int getSteps() {
+        return stroll == null ? 0 : stroll.getSteps();
     }
 
     private void setForeground() {

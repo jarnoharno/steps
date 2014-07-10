@@ -1,6 +1,6 @@
 package com.hiit.steps;
 
-public class CachedBufferQueue<T> implements CachedQueue<CachedBufferQueue.Message> {
+public class CachedMessageQueue<T> implements CachedQueue<CachedMessageQueue.Message> {
 
     public enum Command {
         Continue,
@@ -10,9 +10,9 @@ public class CachedBufferQueue<T> implements CachedQueue<CachedBufferQueue.Messa
     public class Message {
 
         private Command command = Command.Continue;
-        public Buffer<T> buffer;
-        Message(int size) {
-            buffer = new Buffer<T>(size);
+        public T data;
+        Message(TypeFactory<T> factory) {
+            data = factory.create();
         }
         public Command getCommand() {
             return command;
@@ -21,31 +21,25 @@ public class CachedBufferQueue<T> implements CachedQueue<CachedBufferQueue.Messa
 
     private CachedSynchronousQueue<Message> queue;
 
-    public CachedBufferQueue(final int size) {
+    public CachedMessageQueue(final TypeFactory<T> factory) {
         queue = new CachedSynchronousQueue<Message>(
                 new AbstractTypeFactory<Message>() {
 
-            @Override
-            public Message create() {
-                return new Message(size);
-            }
-        });
+                    @Override
+                    public Message create() {
+                        return new Message(factory);
+                    }
+                });
     }
 
-    @Override
     public Message obtain() {
         return queue.obtain();
     }
 
-    @Override
     public void put() {
-        if (queue.obtain().buffer.full()) {
-            queue.put();
-            queue.obtain().buffer.reset();
-        }
+        queue.put();
     }
 
-    @Override
     public Message take() {
         return queue.take();
     }

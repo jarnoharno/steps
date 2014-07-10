@@ -1,7 +1,5 @@
 package com.hiit.steps;
 
-import java.util.Iterator;
-
 public class Buffer<T> {
 
     private Object[] buffer;

@@ -6,6 +6,12 @@ import java.util.concurrent.SynchronousQueue;
 
 public class CachedSynchronousQueue<T> implements CachedQueue<T> {
 
+    private static final String TAG = "Steps";
+
+    private void log(String msg) {
+        Log.d(TAG, "Queue(" + System.identityHashCode(this) + "): " + msg);
+    }
+
     private SynchronousQueue<T> queue = new SynchronousQueue<T>();
 
     private T t1;
@@ -29,7 +35,7 @@ public class CachedSynchronousQueue<T> implements CachedQueue<T> {
         if (queue.offer(t))
             return;
         try {
-            Log.w("CachedSynchronousQueue", "Waiting for consumer");
+            log("Waiting for consumer");
             queue.put(t);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

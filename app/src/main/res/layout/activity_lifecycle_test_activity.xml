@@ -16,14 +16,15 @@
         android:id="@+id/service_button"
         android:layout_alignParentTop="true"
         android:layout_alignParentStart="true"
-        android:onClick="onServiceButtonClicked"/>
+        android:onClick="onServiceButtonClicked"
+        android:checked="false"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="@string/steps"
-        android:id="@+id/steps_label"
+        android:text="@string/samples_label"
+        android:id="@+id/samples_label"
         android:layout_alignParentStart="true"
         android:layout_below="@+id/service_button"
         android:layout_marginTop="@dimen/activity_vertical_margin"/>
@@ -32,11 +33,31 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:id="@+id/steps"
-        android:layout_alignTop="@+id/steps_label"
-        android:layout_toRightOf="@+id/steps_label"
+        android:id="@+id/samples"
+        android:layout_alignTop="@+id/samples_label"
+        android:layout_toRightOf="@+id/samples_label"
         android:layout_marginLeft="@dimen/activity_horizontal_margin"
         android:textStyle="bold"
         android:text="0"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/steps_label"
+        android:id="@+id/textView"
+        android:layout_alignTop="@+id/steps"
+        android:layout_toLeftOf="@+id/samples"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="0"
+        android:id="@+id/steps"
+        android:textStyle="bold"
+        android:layout_below="@+id/samples"
+        android:layout_alignStart="@+id/samples"
+        android:layout_marginTop="@dimen/activity_vertical_margin"/>
 
 </RelativeLayout>

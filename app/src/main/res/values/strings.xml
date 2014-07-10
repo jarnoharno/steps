@@ -7,6 +7,7 @@
     <string name="service_notification">Steps started</string>
     <string name="service_notification_title">Steps</string>
     <string name="service_notification_message">Steps is running</string>
-    <string name="steps">Steps:</string>
+    <string name="samples_label">Samples:</string>
+    <string name="steps_label">Steps:</string>
 
 </resources>
