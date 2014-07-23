@@ -24,7 +24,8 @@
         <receiver
             android:name=".StepsReceiver"
             android:enabled="true"
-            android:exported="true" >
+            android:exported="true"
+            android:process=":remote" >
         </receiver>
     </application>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />

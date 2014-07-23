@@ -21,7 +21,7 @@ public class StepsActivity extends Activity {
     private static final String SAMPLES_KEY_NAME = "samples";
     private static final String STEPS_KEY_NAME = "steps";
 
-    private StepsService service = null;
+    private StepsService.Local service = null;
 
     // these are saved to bundle
     private int samples = 0;
@@ -30,19 +30,18 @@ public class StepsActivity extends Activity {
     private ServiceConnection connection = new ServiceConnection() {
 
         @Override
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            StepsService.LocalBinder binder = (StepsService.LocalBinder) service;
-            StepsActivity.this.service = binder.getService();
-            StepsActivity.this.service.addListener(listener);
+        public void onServiceConnected(ComponentName name, IBinder binder) {
+            service = new StepsService.Local(binder);
+            service.addListener(listener);
             ToggleButton btn = (ToggleButton)findViewById(R.id.service_button);
             btn.setEnabled(true);
-            btn.setChecked(StepsActivity.this.service.isRunning());
-            StepsActivity.this.updateSamples(StepsActivity.this.service.getSamples());
-            StepsActivity.this.updateSteps(StepsActivity.this.service.getSteps());
+            btn.setChecked(service.isRunning());
+            updateSamples(service.getSamples());
+            updateSteps(service.getSteps());
         }
 
         @Override
-        public void onServiceDisconnected(ComponentName arg0) {
+        public void onServiceDisconnected(ComponentName name) {
             service = null;
             ToggleButton btn = (ToggleButton)findViewById(R.id.service_button);
             btn.setEnabled(false);
@@ -61,8 +60,8 @@ public class StepsActivity extends Activity {
         view.setText(Integer.toString(steps));
     }
 
-    public static final int MSG_SAMPLE_EVENT = 1;
-    public static final int MSG_STEP_EVENT = 2;
+    private static final int MSG_SAMPLE_EVENT = 1;
+    private static final int MSG_STEP_EVENT = 2;
 
     private Handler handler = new Handler() {
         @Override
@@ -131,8 +130,7 @@ public class StepsActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        Intent intent = new Intent(this, StepsService.class);
-        bindService(intent, connection, Context.BIND_AUTO_CREATE);
+        StepsService.bindLocal(this, connection, null);
     }
 
     @Override
