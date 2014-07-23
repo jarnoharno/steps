@@ -80,10 +80,7 @@ public class IOLoop {
         log("stop");
         try {
             thread.join();
-            log(samples + " samples received");
             formatter.close();
-            Log.d(TAG, "wrote " + file.toString());
-
             if (FileSystem.isExternalStorageWritable()) {
                 // move to files dir
                 File externalFolder = context.getExternalFilesDir(null);
@@ -96,6 +93,7 @@ public class IOLoop {
                     e.printStackTrace();
                 }
             }
+            log("wrote " + samples + " rows to " + file.toString());
             Toast toast = Toast.makeText(context, ("wrote " + file.toString()), Toast.LENGTH_LONG);
             toast.show();
         } catch (InterruptedException e) {

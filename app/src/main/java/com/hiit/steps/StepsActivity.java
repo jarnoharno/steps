@@ -31,10 +31,9 @@ public class StepsActivity extends Activity {
 
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
-            log("onServiceConnected");
             StepsService.LocalBinder binder = (StepsService.LocalBinder) service;
             StepsActivity.this.service = binder.getService();
-            StepsActivity.this.service.setListener(listener);
+            StepsActivity.this.service.addListener(listener);
             ToggleButton btn = (ToggleButton)findViewById(R.id.service_button);
             btn.setEnabled(true);
             btn.setChecked(StepsActivity.this.service.isRunning());
@@ -44,7 +43,6 @@ public class StepsActivity extends Activity {
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
-            log("onServiceDisconnected");
             service = null;
             ToggleButton btn = (ToggleButton)findViewById(R.id.service_button);
             btn.setEnabled(false);
@@ -63,19 +61,19 @@ public class StepsActivity extends Activity {
         view.setText(Integer.toString(steps));
     }
 
-    private static final int SAMPLE_EVENT = 1;
-    private static final int STEP_EVENT = 2;
+    public static final int MSG_SAMPLE_EVENT = 1;
+    public static final int MSG_STEP_EVENT = 2;
 
     private Handler handler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case SAMPLE_EVENT:
+                case MSG_SAMPLE_EVENT:
                     if (service == null)
                         break;
                     updateSamples(service.getSamples());
                     break;
-                case STEP_EVENT:
+                case MSG_STEP_EVENT:
                     if (service == null)
                         break;
                     updateSteps(service.getSteps());
@@ -87,18 +85,17 @@ public class StepsActivity extends Activity {
         }
     };
 
-    // thread-safe
     private StepsListener listener = new StepsListener() {
 
         @Override
         public void onSampleEvent() {
-            Message msg = handler.obtainMessage(SAMPLE_EVENT);
+            Message msg = handler.obtainMessage(MSG_SAMPLE_EVENT);
             handler.sendMessage(msg);
         }
 
         @Override
         public void onStepEvent() {
-            Message msg = handler.obtainMessage(STEP_EVENT);
+            Message msg = handler.obtainMessage(MSG_STEP_EVENT);
             handler.sendMessage(msg);
         }
     };
@@ -107,31 +104,21 @@ public class StepsActivity extends Activity {
         Log.d(TAG, "Activity(" + System.identityHashCode(this) + "/" + Thread.currentThread().getId() + "): " + msg);
     }
 
-    public StepsActivity() {
-        super();
-        log("constructor");
-    }
-
     public void onServiceButtonClicked(View view) {
-        log("onServiceButtonClicked");
-        Intent intent = new Intent(this, StepsService.class);
         boolean on = ((ToggleButton) view).isChecked();
         if (on) {
+            Intent intent = new Intent(this, StepsService.class);
             startService(intent);
-            service.start();
         } else {
             service.stop();
-            stopService(intent);
         }
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        log("onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_lifecycle_test_activity);
         if (savedInstanceState != null) {
-            log(savedInstanceState.toString());
             int samples = savedInstanceState.getInt(SAMPLES_KEY_NAME, 0);
             int steps = savedInstanceState.getInt(STEPS_KEY_NAME, 0);
             updateSamples(samples);
@@ -143,41 +130,31 @@ public class StepsActivity extends Activity {
 
     @Override
     protected void onStart() {
-        log("onStart");
         super.onStart();
         Intent intent = new Intent(this, StepsService.class);
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
     }
-    @Override
-    protected void onResume() {
-        log("onResume");
-        super.onResume();
-    }
-    @Override
-    protected void onPause() {
-        log("onPause");
-        super.onPause();
-    }
+
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        log("onSaveInstanceState");
         outState.putInt(SAMPLES_KEY_NAME, samples);
         outState.putInt(STEPS_KEY_NAME, steps);
         super.onSaveInstanceState(outState);
     }
+
     @Override
     protected void onStop() {
-        log("onStop");
         super.onStop();
-        // Unbind from the service
+        // Unbind from service
         if (service == null)
             return;
-        service.setListener(null);
+        service.removeListener(listener);
         service = null;
         unbindService(connection);
         ToggleButton btn = (ToggleButton)findViewById(R.id.service_button);
         btn.setEnabled(false);
     }
+
     @Override
     protected void onDestroy() {
         log("onDestroy");

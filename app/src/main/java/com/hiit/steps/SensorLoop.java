@@ -25,10 +25,10 @@ public class SensorLoop {
     private SensorManager sensorManager;
     private int[] sensorTypes = {
             Sensor.TYPE_ACCELEROMETER,
-            Sensor.TYPE_GYROSCOPE,
-            Sensor.TYPE_MAGNETIC_FIELD,
-            Sensor.TYPE_GYROSCOPE_UNCALIBRATED, // doesn't work for galaxy s3???
-            Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED
+            //Sensor.TYPE_GYROSCOPE,
+            //Sensor.TYPE_MAGNETIC_FIELD,
+            //Sensor.TYPE_GYROSCOPE_UNCALIBRATED, // doesn't work for galaxy s3???
+            //Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED
     };
     private Sensor[] sensors = new Sensor[sensorTypes.length];
 
@@ -64,6 +64,19 @@ public class SensorLoop {
 
         @Override
         public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            String acc = "UNDEFINED";
+            switch (accuracy) {
+                case SensorManager.SENSOR_STATUS_ACCURACY_HIGH:
+                    acc = "HIGH";
+                    break;
+                case SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM:
+                    acc = "MEDIUM";
+                    break;
+                case SensorManager.SENSOR_STATUS_ACCURACY_LOW:
+                    acc = "LOW";
+                    break;
+            }
+            log("onAccuracyChanged: " + acc);
         }
     };
 
@@ -86,6 +99,10 @@ public class SensorLoop {
         for (Sensor sensor: sensors) {
             sensorManager.registerListener(sensorEventListener, sensor,
                     SensorManager.SENSOR_DELAY_FASTEST, handler);
+            log("listening " + sensor.getName() +
+                    ", minDelay: " + sensor.getMinDelay() +
+                    " μs, maximumRange: " + sensor.getMaximumRange() +
+                    ", resolution: " + sensor.getResolution());
         }
     }
 

@@ -69,9 +69,7 @@ public class FileSystem {
             }
             String name = prefix + String.format("%0" + idLength + "d", i++) + suffix;
             file = new File(dir, name);
-            Log.d("Steps", "checking filename: " + file.getPath());
         } while (file.exists());
-        Log.d("Steps", "found available file: " + file.getPath());
         return file;
     }
 

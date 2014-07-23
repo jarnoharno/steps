@@ -3,80 +3,95 @@ package com.hiit.steps;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class StepsService extends Service implements StepsListener {
 
     private static final String TAG = "Steps";
+
+    private void log(String msg) {
+        Log.i(TAG, "StepsService(" + Thread.currentThread().getId() + "): " + msg);
+    }
+
     private static final int SERVICE_NOTIFICATION_ID = 1;
 
     public class LocalBinder extends Binder {
-        StepsService getService() {
+        public StepsService getService() {
             return StepsService.this;
         }
     }
 
-    // Binder given to clients
-    private final IBinder mBinder = new LocalBinder();
+    private LocalBinder binder = new LocalBinder();
 
-    private volatile StepsListener listener;
+    private List<StepsListener> clients = new ArrayList<StepsListener>();
 
     private Stroll stroll;
 
     @Override
-    public void onSampleEvent() {
-        // atomic, no read-ahead
-        StepsListener l = listener;
-        if (l == null)
-            return;
-        l.onSampleEvent();
+    public synchronized void onSampleEvent() {
+        for (StepsListener client : clients) {
+            client.onSampleEvent();
+        }
     }
 
     @Override
-    public void onStepEvent() {
-        // atomic, no read-ahead
-        StepsListener l = listener;
-        if (l == null)
-            return;
-        l.onStepEvent();
+    public synchronized void onStepEvent() {
+        for (StepsListener client : clients) {
+            client.onStepEvent();
+        }
     }
 
-    private void log(String msg) {
-        Log.d(TAG, "Service(" + System.identityHashCode(this) + "): " + msg);
+    public synchronized boolean addListener(StepsListener client) {
+        if (clients.contains(client))
+            return false;
+        clients.add(client);
+        return true;
     }
 
-    @Override
-    public void onCreate() {
-        log("onCreate");
+    public synchronized boolean removeListener(StepsListener client) {
+        if (clients.contains(client))
+            return false;
+        clients.remove(client);
+        return true;
     }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        log("onStartCommand");
-        return START_STICKY;
-    }
     @Override
     public IBinder onBind(Intent intent) {
-        log("onBind");
-        return mBinder;
+        return binder;
     }
+
     @Override
     public boolean onUnbind(Intent intent) {
-        log("onUnbind");
         return false; // don't call onRebind
     }
 
     @Override
     public void onDestroy() {
-        log("onDestroy");
-        // in case service gets destroyed without explicit stop()
-        if (stroll == null)
-            return;
-        if (stroll.isRunning())
+        // in case service is destroyed without explicit stop
+        if (stroll != null && stroll.isRunning())
             stroll.stop();
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        // ridiculous hack to make sure system has created an IBinder for the
+        // service
+        ServiceConnection dummyConnection = new AbstractServiceConnection();
+        if (bindService(new Intent(this, StepsService.class), dummyConnection,
+                Context.BIND_AUTO_CREATE)) {
+            unbindService(dummyConnection);
+        }
+        start();
+        return START_STICKY;
     }
 
     public void start() {
@@ -91,10 +106,7 @@ public class StepsService extends Service implements StepsListener {
             return;
         stroll.stop();
         stopForeground(true);
-    }
-
-    public void setListener(StepsListener listener) {
-        this.listener = listener;
+        stopSelf();
     }
 
     public boolean isRunning() {
