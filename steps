@@ -9,7 +9,14 @@ def run(Object... args) {
   args.join(' ').execute()
 }
 
-def storage = run('adb -d shell echo \$EXTERNAL_STORAGE').text.trim()
+def adb = 'adb'
+
+def devices = run(adb, 'devices').text.split('\n').drop(1)
+  .collect({ it.split()[0] })
+
+adb += ' -s ' + devices[0]
+
+def storage = run(adb, 'shell echo \$EXTERNAL_STORAGE').text.trim()
 storage += '/Android/data/com.hiit.steps/files'
 
 switch (args[0]) {
@@ -18,9 +25,9 @@ case 'pull':
   if (!pulls)
     pulls = [ storage ]
   pulls.each({
-    print(run('adb -d pull', it, 'data').err.text)
+    print(run(adb, 'pull', it, 'data').err.text)
   })
   break
 default:
-  print(run('adb -d shell cd', storage, '&&', *args).text)
+  print(run(adb, 'shell cd', storage, '&&', *args).text)
 }
