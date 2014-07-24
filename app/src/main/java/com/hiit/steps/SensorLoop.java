@@ -138,7 +138,7 @@ public class SensorLoop {
                     rateUs, loopHandler);
             log("listening " + sensor.getName() +
                     ", delay: " + rateUs +
-                    ", minDelay: " + sensor.getMinDelay() +
+                    " μs, minDelay: " + sensor.getMinDelay() +
                     " μs, maximumRange: " + sensor.getMaximumRange() +
                     ", resolution: " + sensor.getResolution());
         }

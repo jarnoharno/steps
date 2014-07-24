@@ -39,8 +39,12 @@ public class LifecycleCallback implements Parcelable {
         out.writeStrongBinder(target.asBinder());
     }
 
-    void stopped(int samples, String outputFile) throws RemoteException {
+    public void stopped(int samples, String outputFile) throws RemoteException {
         target.stopped(samples, outputFile);
+    }
+
+    public ILifecycleCallback getTarget() {
+        return target;
     }
 
 }

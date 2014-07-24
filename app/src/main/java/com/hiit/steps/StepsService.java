@@ -17,7 +17,7 @@ import java.util.List;
 
 public class StepsService extends Service implements StepsCallback {
 
-    private List<LifecycleCallback> lifecycleCallbacks = new ArrayList<LifecycleCallback>();
+    private List<ILifecycleCallback> lifecycleCallbacks = new ArrayList<ILifecycleCallback>();
 
     private synchronized void emitStop(int samples, String outputFile) {
         for (int i = lifecycleCallbacks.size() - 1; i >= 0; --i) {
@@ -33,10 +33,14 @@ public class StepsService extends Service implements StepsCallback {
         }
     }
 
-    private synchronized void addLifecycleCallback(LifecycleCallback callback) {
-        if (!lifecycleCallbacks.contains(callback)) {
-            lifecycleCallbacks.add(callback);
-        }
+    private synchronized boolean addLifecycleCallback(ILifecycleCallback callback) {
+        if (lifecycleCallbacks.contains(callback))
+            return false;
+        return lifecycleCallbacks.add(callback);
+    }
+
+    private synchronized boolean removeLifecycleCallback(ILifecycleCallback callback) {
+        return lifecycleCallbacks.remove(callback);
     }
 
     private void addLifecycleCallback(Bundle bundle) {
@@ -45,7 +49,7 @@ public class StepsService extends Service implements StepsCallback {
         LifecycleCallback callback = bundle.getParcelable(Configuration.EXTRA_LIFECYCLE_CALLBACK);
         if (callback == null)
             return;
-        addLifecycleCallback(callback);
+        addLifecycleCallback(callback.getTarget());
     }
 
     private List<IStepsCallback> stepsCallbacks = new ArrayList<IStepsCallback>();
@@ -81,8 +85,18 @@ public class StepsService extends Service implements StepsCallback {
         }
 
         @Override
-        public void stop() throws RemoteException {
-            StepsService.this.stop();
+        public boolean addLifecycleCallback(ILifecycleCallback callback) throws RemoteException {
+            return StepsService.this.addLifecycleCallback(callback);
+        }
+
+        @Override
+        public boolean removeLifecycleCallback(ILifecycleCallback callback) throws RemoteException {
+            return StepsService.this.removeLifecycleCallback(callback);
+        }
+
+        @Override
+        public boolean stop() throws RemoteException {
+            return StepsService.this.stop();
         }
 
         @Override
@@ -181,10 +195,11 @@ public class StepsService extends Service implements StepsCallback {
         setForeground();
     }
 
-    public void stop() {
-        if (stroll == null)
-            return;
+    public boolean stop() {
+        if (!isRunning())
+            return false;
         stroll.stop();
+        return true;
     }
 
     private Runnable done = new Runnable() {

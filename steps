@@ -5,8 +5,8 @@ if (!args) {
   System.exit(1)
 }
 
-def run(Object... args) {
-  def cmd = args.join(' ')
+def run(Object... objs) {
+  def cmd = objs.join(' ')
   println(cmd)
   cmd.execute()
 }
@@ -22,6 +22,36 @@ adb += ' -s ' + devices[0]
 def storage = run(adb, 'shell echo \$EXTERNAL_STORAGE').text.trim()
 storage += '/Android/data/com.hiit.steps/files'
 
+def params() {
+  ret = []
+  for (int i = 1; i < args.size(); ++i) {
+    switch (args[i]) {
+      // time in seconds
+      case '-t':
+        def us = (args[++i].toDouble() * 1e6).intValue()
+        ret.push('--el max_timestamp ' + us + '000')
+        break;
+      // rate in milliseconds
+      case '-r':
+        def us = args[++i].toInteger() * 1000
+        ret.push('--ei rate_us ' + us)
+        break;
+    }
+  }
+  return ret
+}
+
+def broadcast(Object... objs) {
+  def out = run(*objs).text
+  def rows = (out =~ /result=(-?\d*)/)[0][1]
+  def output = (out =~ /data="([^"]*)"/)
+  println(rows)
+  if (output) {
+    output = output[0][1]
+    println(output)
+  }
+}
+
 switch (args[0]) {
 case 'pull':
   def pulls = args.drop(1).collect({ storage + '/' + it })
@@ -32,32 +62,13 @@ case 'pull':
   })
   break
 case 'start':
-  run(adb, 'shell am broadcast -a start', receiver)
+  run(adb, 'shell am broadcast -a start', *params(), receiver)
   break
 case 'stop':
-  run(adb, 'shell am broadcast -a stop', receiver)
+  broadcast(adb, 'shell am broadcast -a stop', receiver)
   break
 case 'run':
-  params = []
-  for (int i = 1; i < args.size(); ++i) {
-    switch (args[i]) {
-      // time in seconds
-      case '-t':
-        def us = (args[++i].toDouble() * 1e6).intValue()
-        params.push('--el max_timestamp ' + us + '000')
-        break;
-      // rate in milliseconds
-      case '-r':
-        def us = args[++i].toInteger() * 1000
-        params.push('--ei rate_us ' + us)
-        break;
-    }
-  }
-  def out = run(adb, 'shell am broadcast -a run', *params, receiver).text
-  def rows = (out =~ /result=(\d*)/)[0][1]
-  def output = (out =~ /data="([^"]*)"/)[0][1]
-  println(rows)
-  println(output)
+  broadcast(adb, 'shell am broadcast -a run', *params(), receiver)
   break
 default:
   print(run(adb, 'shell cd', storage, '&&', *args).text)

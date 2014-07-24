@@ -9,6 +9,7 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
+import android.os.Parcel;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -19,6 +20,9 @@ import java.util.Objects;
 public class StepsReceiver extends BroadcastReceiver {
 
     private static final String TAG = "Steps";
+
+    private static int ERROR_NOT_STARTED = -1;
+    private static int ERROR_REMOTE = -2;
 
     private void log(String msg) {
         Log.d(TAG, "StepsReceiver(" + Thread.currentThread().getId() + "): " + msg);
@@ -50,14 +54,22 @@ public class StepsReceiver extends BroadcastReceiver {
         } else if (action.equals(Configuration.ACTION_STOP)) {
             IBinder binder = peekService(context, stepsIntent);
             if (binder == null) {
-                log("service not started!");
+                log("Service not started");
+                setResultCode(ERROR_NOT_STARTED);
                 return;
             }
             IStepsService service = IStepsService.Stub.asInterface(binder);
             try {
-                service.stop();
+                service.addLifecycleCallback(releaseOnStop);
+                if (!service.stop()) {
+                    log("Service not started");
+                    setResultCode(ERROR_NOT_STARTED);
+                    return;
+                }
+                monitor.block();
             } catch (RemoteException e) {
-                log("error connecting service");
+                log("Error communicating with service");
+                setResultCode(ERROR_REMOTE);
             }
         } else if (action.equals(Configuration.ACTION_RUN)) {
             // Start service and wait synchronously for it to stop.
@@ -66,19 +78,22 @@ public class StepsReceiver extends BroadcastReceiver {
             // The service can't be stopped with another broadcast because
             // onReceive() blocks!
 
-            final Monitor monitor = new Monitor();
-            final ILifecycleCallback cb = new ILifecycleCallback.Stub() {
-                @Override
-                public void stopped(int samples, String outputFile) {
-                    setResult(samples, outputFile, null);
-                    monitor.release();
-                }
-            };
-
-            stepsIntent.putExtra(Configuration.EXTRA_LIFECYCLE_CALLBACK, new LifecycleCallback(cb));
+            stepsIntent.putExtra(Configuration.EXTRA_LIFECYCLE_CALLBACK,
+                    new LifecycleCallback(releaseOnStop));
             context.startService(stepsIntent);
             monitor.block();
         }
     }
+
+    private final Monitor monitor = new Monitor();
+
+
+    final ILifecycleCallback releaseOnStop = new ILifecycleCallback.Stub() {
+        @Override
+        public void stopped(int samples, String outputFile) throws RemoteException {
+            setResult(samples, outputFile, null);
+            monitor.release();
+        }
+    };
 
 }
