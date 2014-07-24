@@ -1,6 +1,10 @@
 package com.hiit.steps;
 
 public class CachedIntArrayBufferQueue extends CachedMessageQueue<IntArrayBuffer> {
+
+    private int length;
+    private int width;
+
     public CachedIntArrayBufferQueue(final int length, final int width) {
         super(new AbstractTypeFactory<IntArrayBuffer>() {
             @Override
@@ -8,6 +12,8 @@ public class CachedIntArrayBufferQueue extends CachedMessageQueue<IntArrayBuffer
                 return new IntArrayBuffer(length, width);
             }
         });
+        this.length = length;
+        this.width = width;
     }
 
     public void put() {
@@ -17,5 +23,13 @@ public class CachedIntArrayBufferQueue extends CachedMessageQueue<IntArrayBuffer
             super.put();
             super.obtain().data.reset();
         }
+    }
+
+    public int getLength() {
+        return length;
+    }
+
+    public int getWidth() {
+        return width;
     }
 }

@@ -7,8 +7,6 @@ import java.util.Formatter;
 
 public class SensorEventSerializer {
 
-    public static final int WIDTH = 10;
-
     public static void toIntArray(SensorEvent event, IntArrayBuffer buffer) {
         toIntArray(event, buffer.buffer, buffer.obtain());
     }
@@ -27,19 +25,34 @@ public class SensorEventSerializer {
         long timestamp = Conversion.intArrayToLong(buffer, offset + 1);
         switch (type) {
             case Sensor.TYPE_ACCELEROMETER:
-                formatter.format("acc");
+                formatter.format("acc ");
                 break;
             case Sensor.TYPE_GYROSCOPE:
-                formatter.format("gyr");
+                formatter.format("gyr ");
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
-                formatter.format("mag");
+                formatter.format("mag ");
                 break;
             case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
-                formatter.format("gyu");
+                formatter.format("gyu ");
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED:
-                formatter.format("mau");
+                formatter.format("mau ");
+                break;
+            case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE:
+                formatter.format("accr");
+                break;
+            case Sensor.TYPE_GYROSCOPE + ResamplingFilter.TYPE_RESAMPLE:
+                formatter.format("gyrr");
+                break;
+            case Sensor.TYPE_MAGNETIC_FIELD + ResamplingFilter.TYPE_RESAMPLE:
+                formatter.format("magr");
+                break;
+            case Sensor.TYPE_GYROSCOPE_UNCALIBRATED + ResamplingFilter.TYPE_RESAMPLE:
+                formatter.format("gyur");
+                break;
+            case Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED + ResamplingFilter.TYPE_RESAMPLE:
+                formatter.format("maur");
                 break;
         }
         formatter.format(" %d", timestamp);
@@ -52,4 +65,5 @@ public class SensorEventSerializer {
             formatter.format(" %f", Float.intBitsToFloat(buffer[offset + i]));
         }
     }
+
 }

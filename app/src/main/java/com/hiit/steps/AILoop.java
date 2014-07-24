@@ -1,13 +1,12 @@
 package com.hiit.steps;
 
 import android.content.Context;
-import android.util.Log;
+import android.hardware.Sensor;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class AILoop {
 
-    private WindowQueue windowQueue;
     private Thread thread;
 
     private CachedIntArrayBufferQueue sensorQueue;
@@ -15,14 +14,12 @@ public class AILoop {
 
     private AtomicInteger steps = new AtomicInteger();
 
-    int samples = 0;
-
     private Runnable runnable = new Runnable() {
         @Override
         public void run() {
             for (;;) {
                 CachedIntArrayBufferQueue.Message message = sensorQueue.take();
-                transferBuffer(message.data);
+                filter(message.data);
                 if (message.getCommand() == CachedIntArrayBufferQueue.Command.Quit) {
                     ioQueue.quit();
                     return;
@@ -32,15 +29,29 @@ public class AILoop {
 
     };
 
-    public void transferBuffer(IntArrayBuffer src) {
+    private Filter accResamplingFilter;
+    private Filter ioFilter;
+
+    private Sample sample;
+
+    private void filter(IntArrayBuffer src) {
         for (int i = 0; i < src.getEnd(); ++i) {
-            ++samples;
-            IntArrayBuffer buffer = ioQueue.obtain().data;
-            System.arraycopy(
-                    src.buffer, src.get(i),
-                    buffer.buffer, buffer.obtain(),
-                    buffer.getWidth());
-            ioQueue.put();
+            int offset = src.get(i);
+            sample.copyFrom(src.buffer, offset);
+            switch (sample.type) {
+                case Sensor.TYPE_ACCELEROMETER:
+                    accResamplingFilter.filter(sample);
+                    break;
+                case Sensor.TYPE_GYROSCOPE:
+                    break;
+                case Sensor.TYPE_MAGNETIC_FIELD:
+                    break;
+                case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
+                    break;
+                case Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED:
+                    break;
+            }
+            ioFilter.filter(sample);
         }
     }
 
@@ -48,9 +59,13 @@ public class AILoop {
            CachedIntArrayBufferQueue sensorQueue,
            CachedIntArrayBufferQueue ioQueue,
            StepsCallback stepsCallback) {
+        int width = Sample.intBufferValueCount(sensorQueue.getWidth());
+        this.ioQueue = ioQueue;
+        this.ioFilter = new QueueFilter(ioQueue);
+        this.accResamplingFilter = new ResamplingFilter(ioFilter, width);
+        this.sample = new Sample(width);
         this.thread = new Thread(runnable);
         this.sensorQueue = sensorQueue;
-        this.ioQueue = ioQueue;
     }
 
     public void start() {

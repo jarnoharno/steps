@@ -104,6 +104,10 @@ public class Stroll {
         return sensorLoop.getRateUs();
     }
 
+    public int getRows() {
+        return ioLoop.getRows();
+    }
+
     public File getOutputFile() {
         return ioLoop.getFile();
     }

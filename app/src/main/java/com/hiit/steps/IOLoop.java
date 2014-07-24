@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Formatter;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class IOLoop {
 
@@ -32,14 +33,13 @@ public class IOLoop {
 
     private CachedIntArrayBufferQueue queue;
 
-    private int samples = 0;
+    private AtomicInteger rows = new AtomicInteger();
 
     private Runnable runnable = new Runnable() {
         @Override
         public void run() {
             for (;;) {
                 CachedIntArrayBufferQueue.Message message = queue.take();
-                log("received window");
                 writeBuffer(message.data);
                 if (message.getCommand() == CachedIntArrayBufferQueue.Command.Quit) {
                     handler.post(quitLoop);
@@ -50,7 +50,7 @@ public class IOLoop {
 
         public void writeBuffer(IntArrayBuffer buffer) {
             for (int i = 0; i < buffer.getEnd(); ++i) {
-                ++samples;
+                rows.incrementAndGet();
                 SensorEventSerializer.formatIntArray(buffer.buffer, buffer.get(i), formatter);
             }
         }
@@ -97,7 +97,7 @@ public class IOLoop {
                         e.printStackTrace();
                     }
                 }
-                String msg = "wrote " + samples + " rows to " + file.toString();
+                String msg = "wrote " + rows + " rows to " + file.toString();
                 log(msg);
                 Toast toast = Toast.makeText(context, msg, Toast.LENGTH_LONG);
                 toast.show();
@@ -116,5 +116,9 @@ public class IOLoop {
 
     public File getFile() {
         return file;
+    }
+
+    public int getRows() {
+        return rows.get();
     }
 }

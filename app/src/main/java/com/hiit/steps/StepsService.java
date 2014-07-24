@@ -207,7 +207,8 @@ public class StepsService extends Service implements StepsCallback {
         public void run() {
             stopForeground(true);
             stopSelf();
-            emitStop(getSamples(), getOutputFile().toString());
+            emitStop(getRows(), getOutputFile().toString());
+            stroll = null;
         }
     };
 
@@ -221,6 +222,10 @@ public class StepsService extends Service implements StepsCallback {
 
     public int getSteps() {
         return stroll == null ? 0 : stroll.getSteps();
+    }
+
+    public int getRows() {
+        return stroll == null ? 0 : stroll.getRows();
     }
 
     public File getOutputFile() {

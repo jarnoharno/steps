@@ -29,7 +29,7 @@ def params() {
       // time in seconds
       case '-t':
         def us = (args[++i].toDouble() * 1e6).intValue()
-        ret.push('--el max_timestamp ' + us + '000')
+        ret.push('--el max_timestamp ' + us)
         break;
       // rate in milliseconds
       case '-r':
