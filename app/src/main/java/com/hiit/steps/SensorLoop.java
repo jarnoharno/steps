@@ -33,6 +33,7 @@ public class SensorLoop {
     private Sensor[] sensors = new Sensor[sensorTypes.length];
 
     private HandlerThread thread = new HandlerThread(SENSOR_LOOP_THREAD_NAME);
+    private Handler loopHandler;
     private Handler handler;
     private StepsListener listener;
 
@@ -47,19 +48,37 @@ public class SensorLoop {
         public boolean handleMessage(Message msg) {
             if (msg.what != HANDLER_QUIT)
                 return false;
-            queue.quit();
-            thread.quit();
+            quitLoop();
             return false;
         }
     };
 
+    private long firstTimestamp = -1;
+    private long maxTimestamp = -1;
+
+    private boolean reject = false;
+
     private SensorEventListener sensorEventListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
+            if (reject)
+                return;
             samples.incrementAndGet();
             listener.onSampleEvent();
+            if (firstTimestamp < 0) {
+                firstTimestamp = event.timestamp;
+            }
+            // in the unlikely event of wrap around
+            if (event.timestamp < firstTimestamp) {
+                event.timestamp += Long.MAX_VALUE - firstTimestamp;
+            } else {
+                event.timestamp -= firstTimestamp;
+            }
             SensorEventSerializer.toIntArray(event, queue.obtain().data);
             queue.put();
+            if (maxTimestamp >= 0 && event.timestamp > maxTimestamp) {
+                quitLoop();
+            }
         }
 
         @Override
@@ -80,10 +99,11 @@ public class SensorLoop {
         }
     };
 
-    SensorLoop(Context context,
+    public SensorLoop(Context context,
                CachedIntArrayBufferQueue queue,
                StepsListener stepsListener) {
         log("construct");
+        handler = new Handler();
         this.queue = queue;
         listener = stepsListener;
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
@@ -92,13 +112,31 @@ public class SensorLoop {
         }
     }
 
+    public void setMaxTimestamp(long maxTimestamp) {
+        this.maxTimestamp = maxTimestamp;
+    }
+
+    public long getMaxTimestamp() {
+        return maxTimestamp;
+    }
+
+    private int rateUs = SensorManager.SENSOR_DELAY_FASTEST;
+
+    public void setRateUs(int rateUs) {
+        this.rateUs = rateUs;
+    }
+
+    public int getRateUs() {
+        return rateUs;
+    }
+
     public void start() {
         log("start");
         thread.start();
-        handler = new Handler(thread.getLooper(), handlerCallback);
+        loopHandler = new Handler(thread.getLooper(), handlerCallback);
         for (Sensor sensor: sensors) {
             sensorManager.registerListener(sensorEventListener, sensor,
-                    SensorManager.SENSOR_DELAY_FASTEST, handler);
+                    rateUs, loopHandler);
             log("listening " + sensor.getName() +
                     ", minDelay: " + sensor.getMinDelay() +
                     " μs, maximumRange: " + sensor.getMaximumRange() +
@@ -108,14 +146,19 @@ public class SensorLoop {
 
     public void stop() {
         log("stop");
-        sensorManager.unregisterListener(sensorEventListener);
-        handler.sendMessage(handler.obtainMessage(HANDLER_QUIT));
-        try {
-            thread.join();
-            log(samples.get() + " samples sent");
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        loopHandler.sendMessage(loopHandler.obtainMessage(HANDLER_QUIT));
+    }
+
+    private void quitLoop() {
+        reject = true;
+        queue.quit();
+        thread.quit();
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                sensorManager.unregisterListener(sensorEventListener);
+            }
+        });
     }
 
     public int getSamples() {

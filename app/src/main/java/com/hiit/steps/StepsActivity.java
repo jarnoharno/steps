@@ -10,6 +10,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -158,6 +159,14 @@ public class StepsActivity extends Activity {
         log("onDestroy");
         super.onDestroy();
     }
+
+    private IStepsCallback.Stub callback = new IStepsCallback.Stub() {
+
+        @Override
+        public void stepEvent() throws RemoteException {
+
+        }
+    };
     
     public void logDirs() {
         log("Environment.getDataDirectory(): " + Environment.getDataDirectory().toString());

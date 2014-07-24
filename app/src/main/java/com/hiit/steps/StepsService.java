@@ -3,7 +3,6 @@ package com.hiit.steps;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -16,6 +15,7 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,9 +31,10 @@ public class StepsService extends Service implements StepsListener {
 
     public static final int MSG_STOP = 1;
 
-    private Handler handler = new Handler() {
+    private Handler messageHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
+            log("msg: " + msg.what);
             switch (msg.what) {
                 case MSG_STOP:
                     stop();
@@ -42,39 +43,36 @@ public class StepsService extends Service implements StepsListener {
         }
     };
 
-    private Messenger messenger = new Messenger(handler);
-
-    public static final String ACTION_BIND_LOCAL = "intent.action.BIND_LOCAL";
-    public static final String EXTRA_CALLBACK = "intent.extra.CALLBACK";
+    private Messenger messenger = new Messenger(messageHandler);
 
     public static final int MSG_CALLBACK_STOPPED = 1;
 
-    private List<Messenger> callbacks = new ArrayList<Messenger>();
+    private List<LifecycleCallback> callbacks = new ArrayList<LifecycleCallback>();
 
-    private void sendCallback(int msg) {
+    private synchronized void sendCallback(int samples, String outputFile) {
+        log("messaging " + samples + " " + outputFile);
         for (int i = callbacks.size() - 1; i >= 0; --i) {
-            Message message = Message.obtain();
-            message.what = msg;
             try {
-                callbacks.get(i).send(message);
+                log("messaging callback " + i);
+                callbacks.get(i).stopped(samples, outputFile);
             } catch (RemoteException e) {
+                log("callback dead");
                 // callback is dead
                 callbacks.remove(i);
             }
         }
     }
 
-    private void addCallback(Messenger callback) {
+    private synchronized void addCallback(LifecycleCallback callback) {
         if (!callbacks.contains(callback)) {
             callbacks.add(callback);
         }
     }
 
-    private void addCallback(Intent intent) {
-        Bundle bundle = intent.getExtras();
+    private void addCallback(Bundle bundle) {
         if (bundle == null)
             return;
-        Messenger callback = (Messenger) bundle.getParcelable(EXTRA_CALLBACK);
+        LifecycleCallback callback = bundle.getParcelable(Configuration.EXTRA_LIFECYCLE_CALLBACK);
         if (callback == null)
             return;
         addCallback(callback);
@@ -82,9 +80,10 @@ public class StepsService extends Service implements StepsListener {
 
     @Override
     public IBinder onBind(Intent intent) {
-        addCallback(intent);
-        String action = intent.getAction();
-        if (action != null && action.equals(ACTION_BIND_LOCAL)) {
+        log("onBind, intent=" + intent);
+        Bundle bundle = intent.getExtras();
+        addCallback(bundle);
+        if (bundle != null && Configuration.EXTRA_BIND_LOCAL.equals(bundle.getString(Configuration.EXTRA_BIND))) {
             return localBinder;
         }
         return messenger.getBinder();
@@ -137,6 +136,7 @@ public class StepsService extends Service implements StepsListener {
             Message message = Message.obtain();
             message.what = MSG_STOP;
             try {
+                Log.d("Steps", "MSG_STOP");
                 messenger.send(message);
             } catch (RemoteException e) {
                 e.printStackTrace();
@@ -146,17 +146,19 @@ public class StepsService extends Service implements StepsListener {
 
     public static boolean bindLocal(Context context, ServiceConnection serviceConnection, Messenger callback) {
         Intent intent = new Intent(context, StepsService.class);
-        intent.setAction(ACTION_BIND_LOCAL);
+        intent.putExtra(Configuration.EXTRA_BIND, Configuration.EXTRA_BIND_LOCAL);
         if (callback != null) {
-            intent.putExtra(EXTRA_CALLBACK, callback);
+            intent.putExtra(Configuration.EXTRA_LIFECYCLE_CALLBACK, callback);
         }
+        Log.d(TAG, "bindLocal, intent=" + intent);
         return context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
     }
 
     public static boolean bindRemote(Context context, ServiceConnection serviceConnection, Messenger callback) {
         Intent intent = new Intent(context, StepsService.class);
+        intent.putExtra(Configuration.EXTRA_BIND, Configuration.EXTRA_BIND_REMOTE);
         if (callback != null) {
-            intent.putExtra(EXTRA_CALLBACK, callback);
+            intent.putExtra(Configuration.EXTRA_LIFECYCLE_CALLBACK, callback);
         }
         return context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
     }
@@ -215,7 +217,8 @@ public class StepsService extends Service implements StepsListener {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        addCallback(intent);
+        Bundle bundle = intent.getExtras();
+        addCallback(bundle);
         // ridiculous hack to make sure the system has created a remote IBinder
         // for the service
         ServiceConnection dummyConnection = new AbstractServiceConnection();
@@ -223,13 +226,27 @@ public class StepsService extends Service implements StepsListener {
                 Context.BIND_AUTO_CREATE)) {
             unbindService(dummyConnection);
         }
-        start();
+        start(bundle);
         return START_STICKY;
     }
 
-    public void start() {
+    public void start(Bundle bundle) {
         log("start");
-        stroll = Stroll.start(this, this);
+        stroll = new Stroll(this, this, done);
+
+        // configuration
+        if (bundle != null) {
+            Long maxTimestamp = (Long) bundle.get(Configuration.EXTRA_MAX_TIMESTAMP);
+            if (maxTimestamp != null) {
+                stroll.setMaxTimestamp(maxTimestamp.longValue());
+            }
+            Integer rateUs = (Integer) bundle.get(Configuration.EXTRA_RATE_US);
+            if (rateUs != null) {
+                stroll.setRateUs(maxTimestamp.intValue());
+            }
+        }
+
+        stroll.start();
         setForeground();
     }
 
@@ -238,10 +255,17 @@ public class StepsService extends Service implements StepsListener {
         if (stroll == null)
             return;
         stroll.stop();
-        stopForeground(true);
-        stopSelf();
-        sendCallback(MSG_CALLBACK_STOPPED);
     }
+
+    private Runnable done = new Runnable() {
+        @Override
+        public void run() {
+            log("done");
+            stopForeground(true);
+            stopSelf();
+            sendCallback(getSamples(), getOutputFile().toString());
+        }
+    };
 
     public boolean isRunning() {
         return stroll != null && stroll.isRunning();
@@ -253,6 +277,10 @@ public class StepsService extends Service implements StepsListener {
 
     public int getSteps() {
         return stroll == null ? 0 : stroll.getSteps();
+    }
+
+    public File getOutputFile() {
+        return stroll == null ? null : stroll.getOutputFile();
     }
 
     private void setForeground() {

@@ -1,8 +1,7 @@
 package com.hiit.steps;
 
 import android.content.Context;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
+import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -22,6 +21,8 @@ public class IOLoop {
     private static final String FILE_PREFIX = "steps";
     private static final String FILE_SUFFIX = "";
 
+    private Handler handler;
+    private Runnable done;
     private Thread thread;
     private Context context;
 
@@ -41,6 +42,7 @@ public class IOLoop {
                 log("received window");
                 writeBuffer(message.data);
                 if (message.getCommand() == CachedIntArrayBufferQueue.Command.Quit) {
+                    handler.post(quitLoop);
                     return;
                 }
             }
@@ -55,7 +57,9 @@ public class IOLoop {
 
     };
 
-    IOLoop(Context context, CachedIntArrayBufferQueue queue) {
+    public IOLoop(Context context, CachedIntArrayBufferQueue queue, Runnable done) {
+        this.handler = new Handler();
+        this.done = done;
         this.context = context;
         this.thread = new Thread(runnable);
         this.queue = queue;
@@ -75,29 +79,41 @@ public class IOLoop {
         thread.start();
     }
 
-    public void stop() {
-        // just wait and hope the source quits the loop
-        log("stop");
-        try {
-            thread.join();
-            formatter.close();
-            if (FileSystem.isExternalStorageWritable()) {
-                // move to files dir
-                File externalFolder = context.getExternalFilesDir(null);
-                File externalFile = FileSystem.nextAvailableFile(
-                        FILE_PREFIX, FILE_SUFFIX, externalFolder);
-                try {
-                    FileSystem.moveFile(file, externalFile);
-                    file = externalFile;
-                } catch (IOException e) {
-                    e.printStackTrace();
+    private Runnable quitLoop = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                thread.join();
+                formatter.close();
+                if (FileSystem.isExternalStorageWritable()) {
+                    // move to files dir
+                    File externalFolder = context.getExternalFilesDir(null);
+                    File externalFile = FileSystem.nextAvailableFile(
+                            FILE_PREFIX, FILE_SUFFIX, externalFolder);
+                    try {
+                        FileSystem.moveFile(file, externalFile);
+                        setFile(externalFile);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
+                log("wrote " + samples + " rows to " + file.toString());
+                Toast toast = Toast.makeText(context, ("wrote " + file.toString()), Toast.LENGTH_LONG);
+                toast.show();
+                if (done != null) {
+                    done.run();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
-            log("wrote " + samples + " rows to " + file.toString());
-            Toast toast = Toast.makeText(context, ("wrote " + file.toString()), Toast.LENGTH_LONG);
-            toast.show();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
         }
+    };
+
+    public void setFile(File file) {
+        this.file = file;
+    }
+
+    public File getFile() {
+        return file;
     }
 }

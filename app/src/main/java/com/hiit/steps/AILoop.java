@@ -64,16 +64,6 @@ public class AILoop {
         thread.start();
     }
 
-    public void stop() {
-        // just wait and hope the source quits the loop
-        try {
-            thread.join();
-            log(samples + " samples received/sent");
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
     public int getSteps() {
         return steps.get();
     }

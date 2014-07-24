@@ -4,6 +4,8 @@ import android.content.Context;
 import android.os.PowerManager;
 import android.util.Log;
 
+import java.io.File;
+
 public class Stroll {
 
     private static final String TAG = "Steps";
@@ -14,6 +16,7 @@ public class Stroll {
 
     private static final String WAKE_LOCK_TAG = "StepsServiceWakeLockTag";
 
+    private Runnable serviceDone;
     private SensorLoop sensorLoop;
     private CachedIntArrayBufferQueue sensorQueue;
     private AILoop aiLoop;
@@ -21,11 +24,12 @@ public class Stroll {
     private IOLoop ioLoop;
     private boolean running;
 
-    PowerManager powerManager;
-    PowerManager.WakeLock wakeLock;
+    private PowerManager powerManager;
+    private PowerManager.WakeLock wakeLock;
 
-    Stroll(Context context, StepsListener stepsListener) {
+    Stroll(Context context, StepsListener stepsListener, Runnable serviceDone) {
         log("construct");
+        this.serviceDone = serviceDone;
         powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                 WAKE_LOCK_TAG);
@@ -40,10 +44,18 @@ public class Stroll {
 
         sensorQueue = new CachedIntArrayBufferQueue(100, 10); // ~200 ms lag with all sensors on
         ioQueue = new CachedIntArrayBufferQueue(1000, 10); // ~2 s lag with all sensors on
-        ioLoop = new IOLoop(context, ioQueue);
+        ioLoop = new IOLoop(context, ioQueue, done);
         aiLoop = new AILoop(context, sensorQueue, ioQueue, stepsListener);
         sensorLoop = new SensorLoop(context, sensorQueue, stepsListener);
         running = false;
+    }
+
+    public void setMaxTimestamp(long maxTimestamp) {
+        sensorLoop.setMaxTimestamp(maxTimestamp);
+    }
+
+    public long getMaxTimestamp() {
+        return sensorLoop.getMaxTimestamp();
     }
 
     public void start() {
@@ -58,11 +70,19 @@ public class Stroll {
     public void stop() {
         log("stop");
         sensorLoop.stop();
-        aiLoop.stop();
-        ioLoop.stop();
-        wakeLock.release();
-        running = false;
     }
+
+    private Runnable done = new Runnable() {
+        @Override
+        public void run() {
+            log("done");
+            wakeLock.release();
+            running = false;
+            if (serviceDone != null) {
+                serviceDone.run();
+            }
+        }
+    };
 
     public boolean isRunning() {
         return running;
@@ -76,9 +96,16 @@ public class Stroll {
         return aiLoop.getSteps();
     }
 
-    public static Stroll start(Context context, StepsListener stepsListener) {
-        Stroll stroll = new Stroll(context, stepsListener);
-        stroll.start();
-        return stroll;
+    public void setRateUs(int rateUs) {
+        sensorLoop.setRateUs(rateUs);
     }
+
+    public int getRateUs() {
+        return sensorLoop.getRateUs();
+    }
+
+    public File getOutputFile() {
+        return ioLoop.getFile();
+    }
+
 }
