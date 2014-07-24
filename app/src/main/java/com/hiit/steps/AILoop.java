@@ -7,13 +7,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class AILoop {
 
-    private static final String TAG = "Steps";
-
-    private void log(String msg) {
-        Log.d(TAG, "AILoop(" + System.identityHashCode(this) + "): " + msg);
-    }
-
-
     private WindowQueue windowQueue;
     private Thread thread;
 
@@ -54,7 +47,7 @@ public class AILoop {
     AILoop(Context context,
            CachedIntArrayBufferQueue sensorQueue,
            CachedIntArrayBufferQueue ioQueue,
-           StepsListener stepsListener) {
+           StepsCallback stepsCallback) {
         this.thread = new Thread(runnable);
         this.sensorQueue = sensorQueue;
         this.ioQueue = ioQueue;

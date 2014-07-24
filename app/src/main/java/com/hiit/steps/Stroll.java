@@ -27,7 +27,7 @@ public class Stroll {
     private PowerManager powerManager;
     private PowerManager.WakeLock wakeLock;
 
-    Stroll(Context context, StepsListener stepsListener, Runnable serviceDone) {
+    Stroll(Context context, StepsCallback stepsCallback, Runnable serviceDone) {
         log("construct");
         this.serviceDone = serviceDone;
         powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
@@ -45,8 +45,8 @@ public class Stroll {
         sensorQueue = new CachedIntArrayBufferQueue(100, 10); // ~200 ms lag with all sensors on
         ioQueue = new CachedIntArrayBufferQueue(1000, 10); // ~2 s lag with all sensors on
         ioLoop = new IOLoop(context, ioQueue, done);
-        aiLoop = new AILoop(context, sensorQueue, ioQueue, stepsListener);
-        sensorLoop = new SensorLoop(context, sensorQueue, stepsListener);
+        aiLoop = new AILoop(context, sensorQueue, ioQueue, stepsCallback);
+        sensorLoop = new SensorLoop(context, sensorQueue, stepsCallback);
         running = false;
     }
 

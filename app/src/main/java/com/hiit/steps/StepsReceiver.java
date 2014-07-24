@@ -48,14 +48,17 @@ public class StepsReceiver extends BroadcastReceiver {
         if (action.equals(Configuration.ACTION_START) || action.equals(Intent.ACTION_MAIN)) {
             context.startService(stepsIntent);
         } else if (action.equals(Configuration.ACTION_STOP)) {
-            log("ACTION_STOP");
             IBinder binder = peekService(context, stepsIntent);
             if (binder == null) {
                 log("service not started!");
                 return;
             }
-            StepsService.Remote service = new StepsService.Remote(binder);
-            service.stop();
+            IStepsService service = IStepsService.Stub.asInterface(binder);
+            try {
+                service.stop();
+            } catch (RemoteException e) {
+                log("error connecting service");
+            }
         } else if (action.equals(Configuration.ACTION_RUN)) {
             // Start service and wait synchronously for it to stop.
             //
@@ -66,8 +69,8 @@ public class StepsReceiver extends BroadcastReceiver {
             final Monitor monitor = new Monitor();
             final ILifecycleCallback cb = new ILifecycleCallback.Stub() {
                 @Override
-                public void stopped(int samples, String outputFile) throws RemoteException {
-                    setResultData(samples + " " + outputFile);
+                public void stopped(int samples, String outputFile) {
+                    setResult(samples, outputFile, null);
                     monitor.release();
                 }
             };
@@ -77,23 +80,5 @@ public class StepsReceiver extends BroadcastReceiver {
             monitor.block();
         }
     }
-
-    public static class Monitor {
-        public boolean hold = true;
-        public synchronized void release() {
-            hold = false;
-            notifyAll();
-        }
-        public synchronized void block() {
-            while (hold) {
-                try {
-                    wait();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        }
-    }
-
 
 }

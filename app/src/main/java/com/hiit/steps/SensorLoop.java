@@ -35,7 +35,7 @@ public class SensorLoop {
     private HandlerThread thread = new HandlerThread(SENSOR_LOOP_THREAD_NAME);
     private Handler loopHandler;
     private Handler handler;
-    private StepsListener listener;
+    private StepsCallback callback;
 
     private AtomicInteger samples = new AtomicInteger();
 
@@ -63,8 +63,7 @@ public class SensorLoop {
         public void onSensorChanged(SensorEvent event) {
             if (reject)
                 return;
-            samples.incrementAndGet();
-            listener.onSampleEvent();
+            callback.onSampleEvent(samples.incrementAndGet());
             if (firstTimestamp < 0) {
                 firstTimestamp = event.timestamp;
             }
@@ -101,11 +100,11 @@ public class SensorLoop {
 
     public SensorLoop(Context context,
                CachedIntArrayBufferQueue queue,
-               StepsListener stepsListener) {
+               StepsCallback stepsCallback) {
         log("construct");
         handler = new Handler();
         this.queue = queue;
-        listener = stepsListener;
+        callback = stepsCallback;
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         for (int i = 0; i < sensorTypes.length; ++i) {
             sensors[i] = sensorManager.getDefaultSensor(sensorTypes[i]);

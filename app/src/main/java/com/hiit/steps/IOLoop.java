@@ -97,8 +97,9 @@ public class IOLoop {
                         e.printStackTrace();
                     }
                 }
-                log("wrote " + samples + " rows to " + file.toString());
-                Toast toast = Toast.makeText(context, ("wrote " + file.toString()), Toast.LENGTH_LONG);
+                String msg = "wrote " + samples + " rows to " + file.toString();
+                log(msg);
+                Toast toast = Toast.makeText(context, msg, Toast.LENGTH_LONG);
                 toast.show();
                 if (done != null) {
                     done.run();

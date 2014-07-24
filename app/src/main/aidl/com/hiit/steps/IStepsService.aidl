@@ -5,8 +5,8 @@ import com.hiit.steps.IStepsCallback;
 
 interface IStepsService {
 
-    void addStepsCallback(IStepsCallback cb);
-    void removeStepsCallback(IStepsCallback cb);
+    boolean addStepsCallback(IStepsCallback callback);
+    boolean removeStepsCallback(IStepsCallback callback);
 
     void stop();
     int getSamples();

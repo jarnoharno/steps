@@ -18,13 +18,11 @@ import android.widget.ToggleButton;
 
 public class StepsActivity extends Activity {
 
-    private static final String TAG = "Steps";
     private static final String SAMPLES_KEY_NAME = "samples";
     private static final String STEPS_KEY_NAME = "steps";
 
-    private StepsService.Local service = null;
+    private IStepsService service = null;
 
-    // these are saved to bundle
     private int samples = 0;
     private int steps = 0;
 
@@ -32,13 +30,19 @@ public class StepsActivity extends Activity {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder binder) {
-            service = new StepsService.Local(binder);
-            service.addListener(listener);
+            service = IStepsService.Stub.asInterface(binder);
+            boolean running;
+            try {
+                service.addStepsCallback(callback);
+                running = service.isRunning();
+            } catch (RemoteException e) {
+                // connection is dead
+                service = null;
+                return;
+            }
             ToggleButton btn = (ToggleButton)findViewById(R.id.service_button);
             btn.setEnabled(true);
-            btn.setChecked(service.isRunning());
-            updateSamples(service.getSamples());
-            updateSteps(service.getSteps());
+            btn.setChecked(running);
         }
 
         @Override
@@ -69,40 +73,33 @@ public class StepsActivity extends Activity {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case MSG_SAMPLE_EVENT:
-                    if (service == null)
-                        break;
-                    updateSamples(service.getSamples());
+                    if (msg.arg1 > 0) {
+                        updateSamples(msg.arg1);
+                    }
                     break;
                 case MSG_STEP_EVENT:
-                    if (service == null)
-                        break;
-                    updateSteps(service.getSteps());
-                    break;
-                default:
-                    super.handleMessage(msg);
+                    if (msg.arg1 > 0) {
+                        updateSteps(msg.arg1);
+                    }
                     break;
             }
         }
     };
 
-    private StepsListener listener = new StepsListener() {
+    private IStepsCallback callback = new IStepsCallback.Stub() {
 
         @Override
-        public void onSampleEvent() {
-            Message msg = handler.obtainMessage(MSG_SAMPLE_EVENT);
+        public void onSampleEvent(int samples) {
+            Message msg = handler.obtainMessage(MSG_SAMPLE_EVENT, samples, 0, null);
             handler.sendMessage(msg);
         }
 
         @Override
-        public void onStepEvent() {
-            Message msg = handler.obtainMessage(MSG_STEP_EVENT);
+        public void onStepEvent(int steps) {
+            Message msg = handler.obtainMessage(MSG_STEP_EVENT, steps, 0, null);
             handler.sendMessage(msg);
         }
     };
-
-    private void log(String msg) {
-        Log.d(TAG, "Activity(" + System.identityHashCode(this) + "/" + Thread.currentThread().getId() + "): " + msg);
-    }
 
     public void onServiceButtonClicked(View view) {
         boolean on = ((ToggleButton) view).isChecked();
@@ -110,7 +107,12 @@ public class StepsActivity extends Activity {
             Intent intent = new Intent(this, StepsService.class);
             startService(intent);
         } else {
-            service.stop();
+            try {
+                service.stop();
+            } catch (RemoteException e) {
+                // service is dead
+                service = null;
+            }
         }
     }
 
@@ -122,7 +124,7 @@ public class StepsActivity extends Activity {
             int samples = savedInstanceState.getInt(SAMPLES_KEY_NAME, 0);
             int steps = savedInstanceState.getInt(STEPS_KEY_NAME, 0);
             updateSamples(samples);
-            updateSamples(steps);
+            updateSteps(steps);
         }
         ToggleButton btn = (ToggleButton)findViewById(R.id.service_button);
         btn.setEnabled(false);
@@ -131,7 +133,7 @@ public class StepsActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        StepsService.bindLocal(this, connection, null);
+        StepsService.bind(this, connection);
     }
 
     @Override
@@ -147,39 +149,18 @@ public class StepsActivity extends Activity {
         // Unbind from service
         if (service == null)
             return;
-        service.removeListener(listener);
-        service = null;
+        try {
+            service.removeStepsCallback(callback);
+        } catch (RemoteException e) {
+            service = null;
+            return;
+        }
         unbindService(connection);
-        ToggleButton btn = (ToggleButton)findViewById(R.id.service_button);
-        btn.setEnabled(false);
     }
 
     @Override
     protected void onDestroy() {
-        log("onDestroy");
         super.onDestroy();
     }
 
-    private IStepsCallback.Stub callback = new IStepsCallback.Stub() {
-
-        @Override
-        public void stepEvent() throws RemoteException {
-
-        }
-    };
-    
-    public void logDirs() {
-        log("Environment.getDataDirectory(): " + Environment.getDataDirectory().toString());
-        log("Environment.getDownloadCacheDirectory(): " + Environment.getDownloadCacheDirectory().toString());
-        log("Environment.getExternalStorageDirectory(): " + Environment.getExternalStorageDirectory().toString());
-        log("Environment.getExternalStorageDirectory(Environment.DIRECTORY_DCIM): " +
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).toString());
-        log("Context.getCacheDir(): " + getCacheDir().toString());
-        log("Context.getExternalCacheDir(): " + getExternalCacheDir().toString());
-        log("Context.getExternalFilesDir(null): " + getExternalFilesDir(null).toString());
-        log("Context.getExternalFilesDir(Environment.DIRECTORY_DCIM): " +
-                getExternalFilesDir(Environment.DIRECTORY_DCIM).toString());
-        log("Context.getFilesDir(): " + getFilesDir().toString());
-
-    }
 }
