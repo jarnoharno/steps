@@ -6,12 +6,8 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.Binder;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -21,39 +17,17 @@ import java.util.List;
 
 public class StepsService extends Service implements StepsCallback {
 
-    private static final String TAG = "Steps";
-
-    private void log(String msg) {
-        Log.i(TAG, "StepsService(" + Thread.currentThread().getId() + "): " + msg);
-    }
-
-    private static final int SERVICE_NOTIFICATION_ID = 1;
-
-    public static final int MSG_STOP = 1;
-
-    private Handler messageHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            log("msg: " + msg.what);
-            switch (msg.what) {
-                case MSG_STOP:
-                    stop();
-                    break;
-            }
-        }
-    };
-
     private List<LifecycleCallback> lifecycleCallbacks = new ArrayList<LifecycleCallback>();
 
-    private synchronized void sendCallback(int samples, String outputFile) {
-        log("messaging " + samples + " " + outputFile);
+    private synchronized void emitStop(int samples, String outputFile) {
         for (int i = lifecycleCallbacks.size() - 1; i >= 0; --i) {
             try {
-                log("messaging callback " + i);
+                Log.d("Steps", "messaging callback " + i);
                 lifecycleCallbacks.get(i).stopped(samples, outputFile);
             } catch (RemoteException e) {
-                log("callback dead");
                 // callback is dead
+            } finally {
+                // remove lifecycle callbacks after stop()
                 lifecycleCallbacks.remove(i);
             }
         }
@@ -189,7 +163,6 @@ public class StepsService extends Service implements StepsCallback {
     }
 
     public void start(Bundle bundle) {
-        log("start");
         stroll = new Stroll(this, this, done);
 
         // configuration
@@ -200,7 +173,7 @@ public class StepsService extends Service implements StepsCallback {
             }
             Integer rateUs = (Integer) bundle.get(Configuration.EXTRA_RATE_US);
             if (rateUs != null) {
-                stroll.setRateUs(maxTimestamp.intValue());
+                stroll.setRateUs(rateUs.intValue());
             }
         }
 
@@ -209,7 +182,6 @@ public class StepsService extends Service implements StepsCallback {
     }
 
     public void stop() {
-        log("stop");
         if (stroll == null)
             return;
         stroll.stop();
@@ -218,10 +190,9 @@ public class StepsService extends Service implements StepsCallback {
     private Runnable done = new Runnable() {
         @Override
         public void run() {
-            log("done");
             stopForeground(true);
             stopSelf();
-            sendCallback(getSamples(), getOutputFile().toString());
+            emitStop(getSamples(), getOutputFile().toString());
         }
     };
 
@@ -240,6 +211,8 @@ public class StepsService extends Service implements StepsCallback {
     public File getOutputFile() {
         return stroll == null ? null : stroll.getOutputFile();
     }
+
+    private static final int SERVICE_NOTIFICATION_ID = 1;
 
     private void setForeground() {
         final Intent notificationIntent = new Intent(this, StepsActivity.class);

@@ -40,7 +40,7 @@ public class StepsReceiver extends BroadcastReceiver {
                 }
             }
         }
-        Intent stepsIntent = new Intent(context, StepsService.class);
+        final Intent stepsIntent = new Intent(context, StepsService.class);
         if (bundle != null) {
             stepsIntent.putExtras(bundle);
         }

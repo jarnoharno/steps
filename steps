@@ -6,9 +6,12 @@ if (!args) {
 }
 
 def run(Object... args) {
-  args.join(' ').execute()
+  def cmd = args.join(' ')
+  println(cmd)
+  cmd.execute()
 }
 
+def receiver = 'com.hiit.steps/.StepsReceiver'
 def adb = 'adb'
 
 def devices = run(adb, 'devices').text.split('\n').drop(1)
@@ -27,6 +30,34 @@ case 'pull':
   pulls.each({
     print(run(adb, 'pull', it, 'data').err.text)
   })
+  break
+case 'start':
+  run(adb, 'shell am broadcast -a start', receiver)
+  break
+case 'stop':
+  run(adb, 'shell am broadcast -a stop', receiver)
+  break
+case 'run':
+  params = []
+  for (int i = 1; i < args.size(); ++i) {
+    switch (args[i]) {
+      // time in seconds
+      case '-t':
+        def us = (args[++i].toDouble() * 1e6).intValue()
+        params.push('--el max_timestamp ' + us + '000')
+        break;
+      // rate in milliseconds
+      case '-r':
+        def us = args[++i].toInteger() * 1000
+        params.push('--ei rate_us ' + us)
+        break;
+    }
+  }
+  def out = run(adb, 'shell am broadcast -a run', *params, receiver).text
+  def rows = (out =~ /result=(\d*)/)[0][1]
+  def output = (out =~ /data="([^"]*)"/)[0][1]
+  println(rows)
+  println(output)
   break
 default:
   print(run(adb, 'shell cd', storage, '&&', *args).text)

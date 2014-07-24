@@ -137,6 +137,7 @@ public class SensorLoop {
             sensorManager.registerListener(sensorEventListener, sensor,
                     rateUs, loopHandler);
             log("listening " + sensor.getName() +
+                    ", delay: " + rateUs +
                     ", minDelay: " + sensor.getMinDelay() +
                     " μs, maximumRange: " + sensor.getMaximumRange() +
                     ", resolution: " + sensor.getResolution());
@@ -150,7 +151,6 @@ public class SensorLoop {
 
     private void quitLoop() {
         reject = true;
-        queue.quit();
         thread.quit();
         handler.post(new Runnable() {
             @Override
@@ -158,6 +158,7 @@ public class SensorLoop {
                 sensorManager.unregisterListener(sensorEventListener);
             }
         });
+        queue.quit();
     }
 
     public int getSamples() {
