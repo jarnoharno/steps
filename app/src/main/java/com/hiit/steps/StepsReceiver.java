@@ -28,8 +28,6 @@ public class StepsReceiver extends BroadcastReceiver {
         Log.d(TAG, "StepsReceiver(" + Thread.currentThread().getId() + "): " + msg);
     }
 
-    private static final String THREAD_RECEIVER = "com.hiit.steps.thread.RECEIVER";
-
     @Override
     public void onReceive(final Context context, Intent intent) {
         log("onReceive, intent=" + intent);
