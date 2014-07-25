@@ -112,4 +112,7 @@ public class Stroll {
         return ioLoop.getFile();
     }
 
+    public void setMeanPowerWindow(int windowLength) {
+        aiLoop.setMeanPowerWindow(windowLength);
+    }
 }

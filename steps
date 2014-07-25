@@ -36,6 +36,11 @@ def params() {
         def us = args[++i].toInteger() * 1000
         ret.push('--ei rate_us ' + us)
         break;
+      // mean power window in samples
+      case '-w':
+        def n = args[++i].toInteger();
+        ret.push('--ei mean_power_win ' + n)
+        break;
     }
   }
   return ret

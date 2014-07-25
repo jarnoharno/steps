@@ -63,8 +63,15 @@ public class SensorEventSerializer {
                 formatter.format("pow");
                 break;
             case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE +
-                    NormFilter.TYPE_NORM + SquareFilter.TYPE_SQUARE + MovingAverageFilter.TYPE_MOVING_AVERAGE:
+                    NormFilter.TYPE_NORM + SquareFilter.TYPE_SQUARE +
+                    MovingAverageFilter.TYPE_MOVING_AVERAGE:
                 formatter.format("powa");
+                break;
+            case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE +
+                    NormFilter.TYPE_NORM + SquareFilter.TYPE_SQUARE +
+                    MovingAverageFilter.TYPE_MOVING_AVERAGE +
+                    DelayFilter.TYPE_DELAY:
+                formatter.format("powad");
                 break;
             default:
                 Log.d("Steps", "unrecognized type: " + type);

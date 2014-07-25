@@ -189,6 +189,10 @@ public class StepsService extends Service implements StepsCallback {
             if (rateUs != null) {
                 stroll.setRateUs(rateUs.intValue());
             }
+            Integer meanPowerWindow = (Integer) bundle.get(Configuration.EXTRA_MEAN_POWER_WINDOW);
+            if (meanPowerWindow != null) {
+                stroll.setMeanPowerWindow(meanPowerWindow.intValue());
+            }
         }
 
         stroll.start();

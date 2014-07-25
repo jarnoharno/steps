@@ -37,7 +37,9 @@ public class AILoop {
     private Filter ioAccrNormFilter;
     private Filter PowerFilter;
     private Filter ioPowerFilter;
-    private Filter averagePowerFilter;
+    private MovingAverageFilter averagePowerFilter;
+    private Filter ioAveragePowerFilter;
+    private DelayFilter delayedAveragePowerFilter;
 
     private Sample sample;
 
@@ -62,6 +64,9 @@ public class AILoop {
         }
     }
 
+    private int resamplingRate = 10000; // 10 ms
+    private int meanPowerWindow = 3;
+
     AILoop(Context context,
            CachedIntArrayBufferQueue sensorQueue,
            CachedIntArrayBufferQueue ioQueue,
@@ -71,13 +76,15 @@ public class AILoop {
 
         // filters created from end to beginning in pipeline
         this.ioFilter = new QueueFilter(ioQueue);
-        this.averagePowerFilter = new MovingAverageFilter(ioFilter, 3);
+        this.delayedAveragePowerFilter = new DelayFilter(ioFilter, width, getMeanPowerDelay());
+        this.ioAveragePowerFilter = new TeeFilter(ioFilter, delayedAveragePowerFilter);
+        this.averagePowerFilter = new MovingAverageFilter(ioAveragePowerFilter, meanPowerWindow);
         this.ioPowerFilter = new TeeFilter(ioFilter, averagePowerFilter);
         this.PowerFilter = new SquareFilter(ioPowerFilter, width);
         this.ioAccrNormFilter = new TeeFilter(ioFilter, PowerFilter);
         this.accrNormFilter = new NormFilter(ioAccrNormFilter, SensorManager.STANDARD_GRAVITY);
         this.ioAccrFilter = new TeeFilter(ioFilter, accrNormFilter);
-        this.accResamplingFilter = new ResamplingFilter(ioAccrFilter, width);
+        this.accResamplingFilter = new ResamplingFilter(ioAccrFilter, width, resamplingRate);
 
         this.sample = new Sample(width);
         this.thread = new Thread(runnable);
@@ -90,5 +97,15 @@ public class AILoop {
 
     public int getSteps() {
         return steps.get();
+    }
+
+    private int getMeanPowerDelay() {
+        return resamplingRate * (meanPowerWindow / 2);
+    }
+
+    public void setMeanPowerWindow(int meanPowerWindow) {
+        this.meanPowerWindow = meanPowerWindow;
+        delayedAveragePowerFilter.setDelay(getMeanPowerDelay());
+        averagePowerFilter.setWindowLength(meanPowerWindow);
     }
 }

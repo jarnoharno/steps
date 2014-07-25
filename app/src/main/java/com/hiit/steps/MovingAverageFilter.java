@@ -27,4 +27,7 @@ public class MovingAverageFilter extends OutputFilter {
         super.filter(sample);
     }
 
+    public void setWindowLength(int windowLength) {
+        this.windowLength = windowLength;
+    }
 }
