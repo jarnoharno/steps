@@ -2,6 +2,7 @@ package com.hiit.steps;
 
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
+import android.util.Log;
 
 import java.util.Formatter;
 
@@ -53,6 +54,20 @@ public class SensorEventSerializer {
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED + ResamplingFilter.TYPE_RESAMPLE:
                 formatter.format("maur");
+                break;
+            case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE + NormFilter.TYPE_NORM:
+                formatter.format("accrn");
+                break;
+            case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE +
+                    NormFilter.TYPE_NORM + SquareFilter.TYPE_SQUARE:
+                formatter.format("pow");
+                break;
+            case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE +
+                    NormFilter.TYPE_NORM + SquareFilter.TYPE_SQUARE + MovingAverageFilter.TYPE_MOVING_AVERAGE:
+                formatter.format("powa");
+                break;
+            default:
+                Log.d("Steps", "unrecognized type: " + type);
                 break;
         }
         formatter.format(" %d", timestamp);

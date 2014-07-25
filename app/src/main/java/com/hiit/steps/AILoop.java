@@ -2,6 +2,7 @@ package com.hiit.steps;
 
 import android.content.Context;
 import android.hardware.Sensor;
+import android.hardware.SensorManager;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -31,6 +32,12 @@ public class AILoop {
 
     private Filter accResamplingFilter;
     private Filter ioFilter;
+    private Filter ioAccrFilter;
+    private Filter accrNormFilter;
+    private Filter ioAccrNormFilter;
+    private Filter PowerFilter;
+    private Filter ioPowerFilter;
+    private Filter averagePowerFilter;
 
     private Sample sample;
 
@@ -61,8 +68,17 @@ public class AILoop {
            StepsCallback stepsCallback) {
         int width = Sample.intBufferValueCount(sensorQueue.getWidth());
         this.ioQueue = ioQueue;
+
+        // filters created from end to beginning in pipeline
         this.ioFilter = new QueueFilter(ioQueue);
-        this.accResamplingFilter = new ResamplingFilter(ioFilter, width);
+        this.averagePowerFilter = new MovingAverageFilter(ioFilter, 3);
+        this.ioPowerFilter = new TeeFilter(ioFilter, averagePowerFilter);
+        this.PowerFilter = new SquareFilter(ioPowerFilter, width);
+        this.ioAccrNormFilter = new TeeFilter(ioFilter, PowerFilter);
+        this.accrNormFilter = new NormFilter(ioAccrNormFilter, SensorManager.STANDARD_GRAVITY);
+        this.ioAccrFilter = new TeeFilter(ioFilter, accrNormFilter);
+        this.accResamplingFilter = new ResamplingFilter(ioAccrFilter, width);
+
         this.sample = new Sample(width);
         this.thread = new Thread(runnable);
         this.sensorQueue = sensorQueue;

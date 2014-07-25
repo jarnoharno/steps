@@ -6,12 +6,23 @@ public class Sample {
     public long timestamp;
     public int valueCount;
     public float[] values;
+
     public Sample(int bufferWidth) {
         values = new float[bufferWidth];
     }
 
+    public Sample(Sample sample) {
+        values = new float[sample.values.length];
+        copyFrom(sample);
+    }
+
     public static int intBufferValueCount(int intBufferWidth) {
         return intBufferWidth - 4;
+    }
+
+    public void copyHeaderForm(Sample sample) {
+        type = sample.type;
+        timestamp = sample.timestamp;
     }
 
     public void copyFrom(int[] buffer, int offset) {
