@@ -1,33 +1,47 @@
 package com.hiit.steps;
 
+import android.util.Log;
+
 public class MovingAverageFilter extends OutputFilter {
 
     public static final int TYPE_MOVING_AVERAGE = 8000; // added to original type
 
-    private Sample sample; // aggregate sample
-    private int windowLength;
+    private Sample[] buffer; // buffer of previous values
+    private Sample mean;
+    private int width;
+    private int index;
 
-    public MovingAverageFilter(Filter output, int windowLength) {
+    public MovingAverageFilter(Filter output, int width, int windowLength) {
         super(output);
-        this.windowLength = windowLength;
+        this.width = width;
+        setWindowLength(windowLength);
     }
 
     @Override
     public void filter(Sample next) {
-        if (sample == null) {
-            sample = new Sample(next);
-        } else {
-            int n1 = windowLength + 1;
-            for (int i = 0; i < next.valueCount; ++i) {
-                sample.values[i] += (next.values[i] - sample.values[i]) / n1;
+        if (mean == null) {
+            // first sample
+            mean = new Sample(next);
+            mean.type += TYPE_MOVING_AVERAGE;
+            for (int i = 0; i < buffer.length; ++i) {
+                buffer[i].copyFrom(mean);
             }
+        } else {
+            for (int i = 0; i < mean.valueCount; ++i) {
+                mean.values[i] = (buffer.length * mean.values[i] - buffer[index].values[i] + next.values[i]) / buffer.length;
+                buffer[index].values[i] = next.values[i];
+            }
+            if (++index >= buffer.length)
+                index = 0;
         }
-        sample.type = next.type + TYPE_MOVING_AVERAGE;
-        sample.timestamp = next.timestamp;
-        super.filter(sample);
+        mean.timestamp = next.timestamp;
+        super.filter(mean);
     }
 
     public void setWindowLength(int windowLength) {
-        this.windowLength = windowLength;
+        this.buffer = new Sample[windowLength];
+        for (int i = 0; i < this.buffer.length; ++i) {
+            this.buffer[i] = new Sample(width);
+        }
     }
 }

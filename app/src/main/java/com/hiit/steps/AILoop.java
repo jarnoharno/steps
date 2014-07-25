@@ -78,7 +78,7 @@ public class AILoop {
         this.ioFilter = new QueueFilter(ioQueue);
         this.delayedAveragePowerFilter = new DelayFilter(ioFilter, width, getMeanPowerDelay());
         this.ioAveragePowerFilter = new TeeFilter(ioFilter, delayedAveragePowerFilter);
-        this.averagePowerFilter = new MovingAverageFilter(ioAveragePowerFilter, meanPowerWindow);
+        this.averagePowerFilter = new MovingAverageFilter(ioAveragePowerFilter, width, meanPowerWindow);
         this.ioPowerFilter = new TeeFilter(ioFilter, averagePowerFilter);
         this.PowerFilter = new SquareFilter(ioPowerFilter, width);
         this.ioAccrNormFilter = new TeeFilter(ioFilter, PowerFilter);
