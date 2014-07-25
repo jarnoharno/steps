@@ -30,7 +30,7 @@ public class AILoop {
 
     };
 
-    private Filter accResamplingFilter;
+    private ResamplingFilter accResamplingFilter;
     private Filter ioFilter;
     private Filter ioAccrFilter;
     private Filter accrNormFilter;
@@ -107,5 +107,11 @@ public class AILoop {
         this.meanPowerWindow = meanPowerWindow;
         delayedAveragePowerFilter.setDelay(getMeanPowerDelay());
         averagePowerFilter.setWindowLength(meanPowerWindow);
+    }
+
+    public void setResampleRate(int resampleRate) {
+        this.resamplingRate = resampleRate;
+        delayedAveragePowerFilter.setDelay(getMeanPowerDelay());
+        accResamplingFilter.setResampleRate(resampleRate);
     }
 }

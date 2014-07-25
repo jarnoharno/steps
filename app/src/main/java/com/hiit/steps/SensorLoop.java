@@ -120,14 +120,14 @@ public class SensorLoop {
         return maxTimestamp;
     }
 
-    private int rateUs = SensorManager.SENSOR_DELAY_FASTEST;
+    private int sampleRate = SensorManager.SENSOR_DELAY_FASTEST;
 
-    public void setRateUs(int rateUs) {
-        this.rateUs = rateUs;
+    public void setSampleRate(int sampleRate) {
+        this.sampleRate = sampleRate;
     }
 
-    public int getRateUs() {
-        return rateUs;
+    public int getSampleRate() {
+        return sampleRate;
     }
 
     public void start() {
@@ -136,9 +136,9 @@ public class SensorLoop {
         loopHandler = new Handler(thread.getLooper(), handlerCallback);
         for (Sensor sensor: sensors) {
             sensorManager.registerListener(sensorEventListener, sensor,
-                    rateUs, loopHandler);
+                    sampleRate, loopHandler);
             log("listening " + sensor.getName() +
-                    ", delay: " + rateUs +
+                    ", delay: " + sampleRate +
                     " μs, minDelay: " + sensor.getMinDelay() +
                     " μs, maximumRange: " + sensor.getMaximumRange() +
                     ", resolution: " + sensor.getResolution());

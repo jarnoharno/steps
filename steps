@@ -31,11 +31,16 @@ def params() {
         def us = (args[++i].toDouble() * 1e6).intValue()
         ret.push('--el max_timestamp ' + us)
         break;
-      // rate in milliseconds
-      case '-r':
+      // sample rate in milliseconds
+      case '-s':
         def us = args[++i].toInteger() * 1000
-        ret.push('--ei rate_us ' + us)
+        ret.push('--ei sample_rate ' + us)
         break;
+      // resample rate in milliseconds
+      case '-r':
+          def us = args[++i].toInteger() * 1000
+          ret.push('--ei resample_rate ' + us)
+          break;
       // mean power window in samples
       case '-w':
         def n = args[++i].toInteger();

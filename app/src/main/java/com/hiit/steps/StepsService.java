@@ -185,9 +185,13 @@ public class StepsService extends Service implements StepsCallback {
             if (maxTimestamp != null) {
                 stroll.setMaxTimestamp(maxTimestamp.longValue());
             }
-            Integer rateUs = (Integer) bundle.get(Configuration.EXTRA_RATE_US);
-            if (rateUs != null) {
-                stroll.setRateUs(rateUs.intValue());
+            Integer sampleRate = (Integer) bundle.get(Configuration.EXTRA_SAMPLE_RATE);
+            if (sampleRate != null) {
+                stroll.setSampleRate(sampleRate.intValue());
+            }
+            Integer resampleRate = (Integer) bundle.get(Configuration.RESAMPLE_RATE);
+            if (resampleRate != null) {
+                stroll.setResampleRate(resampleRate.intValue());
             }
             Integer meanPowerWindow = (Integer) bundle.get(Configuration.EXTRA_MEAN_POWER_WINDOW);
             if (meanPowerWindow != null) {

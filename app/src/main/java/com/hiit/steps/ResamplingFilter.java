@@ -15,13 +15,13 @@ public class ResamplingFilter implements Filter {
         this(output, width, 10000); // 10 ms
     }
 
-    ResamplingFilter(Filter output, int width, int resamplingRate) {
-        this.resampleRate = resamplingRate;
+    ResamplingFilter(Filter output, int width, int resampleRate) {
+        this.resampleRate = resampleRate;
         this.output = output;
         this.previous = new Sample(width);
-        this.previous.timestamp = -resamplingRate;
+        this.previous.timestamp = -resampleRate;
         this.sample = new Sample(width);
-        this.sample.timestamp = -resamplingRate;
+        this.sample.timestamp = -resampleRate;
         this.deltas = new float[width];
     }
 
@@ -53,5 +53,11 @@ public class ResamplingFilter implements Filter {
         previous.copyFrom(next);
     }
 
-
+    public void setResampleRate(int resampleRate) {
+        this.resampleRate = resampleRate;
+        if (this.sample.timestamp < 0) {
+            this.previous.timestamp = -resampleRate;
+            this.sample.timestamp = -resampleRate;
+        }
+    }
 }

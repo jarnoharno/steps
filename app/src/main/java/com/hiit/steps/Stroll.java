@@ -96,12 +96,12 @@ public class Stroll {
         return aiLoop.getSteps();
     }
 
-    public void setRateUs(int rateUs) {
-        sensorLoop.setRateUs(rateUs);
+    public void setSampleRate(int rateUs) {
+        sensorLoop.setSampleRate(rateUs);
     }
 
     public int getRateUs() {
-        return sensorLoop.getRateUs();
+        return sensorLoop.getSampleRate();
     }
 
     public int getRows() {
@@ -114,5 +114,9 @@ public class Stroll {
 
     public void setMeanPowerWindow(int windowLength) {
         aiLoop.setMeanPowerWindow(windowLength);
+    }
+
+    public void setResampleRate(int resampleRateUs) {
+        aiLoop.setResampleRate(resampleRateUs);
     }
 }
