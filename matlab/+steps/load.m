@@ -1,4 +1,4 @@
-function ret = read(filename)
+function ret = load(filename)
 ret = struct;
 file = fopen(filename);
 while 1
