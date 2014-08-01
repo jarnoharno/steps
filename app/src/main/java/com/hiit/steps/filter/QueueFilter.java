@@ -1,4 +1,9 @@
-package com.hiit.steps;
+package com.hiit.steps.filter;
+
+import com.hiit.steps.CachedIntArrayBufferQueue;
+import com.hiit.steps.IntArrayBuffer;
+import com.hiit.steps.Sample;
+import com.hiit.steps.filter.Filter;
 
 public class QueueFilter implements Filter {
 

@@ -1,4 +1,7 @@
-package com.hiit.steps;
+package com.hiit.steps.filter;
+
+import com.hiit.steps.Sample;
+import com.hiit.steps.filter.Filter;
 
 public class ResamplingFilter implements Filter {
 
@@ -11,11 +14,11 @@ public class ResamplingFilter implements Filter {
 
     private Filter output;
 
-    ResamplingFilter(Filter output, int width) {
+    public ResamplingFilter(Filter output, int width) {
         this(output, width, 10000); // 10 ms
     }
 
-    ResamplingFilter(Filter output, int width, int resampleRate) {
+    public ResamplingFilter(Filter output, int width, int resampleRate) {
         this.resampleRate = resampleRate;
         this.output = output;
         this.previous = new Sample(width);

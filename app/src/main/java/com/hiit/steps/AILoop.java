@@ -2,7 +2,16 @@ package com.hiit.steps;
 
 import android.content.Context;
 import android.hardware.Sensor;
-import android.hardware.SensorManager;
+
+import com.hiit.steps.filter.DelayFilter;
+import com.hiit.steps.filter.Filter;
+import com.hiit.steps.filter.NormFilter;
+import com.hiit.steps.filter.QueueFilter;
+import com.hiit.steps.filter.ResamplingFilter;
+import com.hiit.steps.filter.SampleDelayFilter;
+import com.hiit.steps.filter.SlidingStandardDeviationFilter;
+import com.hiit.steps.filter.TeeFilter;
+import com.hiit.steps.filter.TimeShiftFilter;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -32,14 +41,12 @@ public class AILoop {
 
     private ResamplingFilter accResamplingFilter;
     private Filter ioFilter;
-    private Filter ioAccrFilter;
-    private Filter accrNormFilter;
-    private Filter ioAccrNormFilter;
-    private Filter PowerFilter;
-    private Filter ioPowerFilter;
-    private MovingAverageFilter averagePowerFilter;
-    private Filter ioAveragePowerFilter;
-    private DelayFilter delayedAveragePowerFilter;
+    //private Filter ioAccrFilter;
+    private Filter magnFilter;
+    private Filter teeMagnFilter;
+    //private Filter ioMagnFilter;
+    private SlidingStandardDeviationFilter stdFilter;
+    private DelayFilter delayedMagnFilter;
 
     private Sample sample;
 
@@ -60,31 +67,31 @@ public class AILoop {
                 case Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED:
                     break;
             }
-            ioFilter.filter(sample);
+            //ioFilter.filter(sample);
         }
     }
 
     private int resamplingRate = 10000; // 10 ms
-    private int meanPowerWindow = 3;
+    private int meanPowerWindow = 100; // 1 s
 
     AILoop(Context context,
            CachedIntArrayBufferQueue sensorQueue,
            CachedIntArrayBufferQueue ioQueue,
            StepsCallback stepsCallback) {
         int width = Sample.intBufferValueCount(sensorQueue.getWidth());
-        this.ioQueue = ioQueue;q
+        this.ioQueue = ioQueue;
 
         // filters created from end to beginning in pipeline
         this.ioFilter = new QueueFilter(ioQueue);
-        this.delayedAveragePowerFilter = new DelayFilter(ioFilter, width, getMeanPowerDelay());
-        this.ioAveragePowerFilter = new TeeFilter(ioFilter, delayedAveragePowerFilter);
-        this.averagePowerFilter = new MovingAverageFilter(ioAveragePowerFilter, width, meanPowerWindow);
-        this.ioPowerFilter = new TeeFilter(ioFilter, averagePowerFilter);
-        this.PowerFilter = new SquareFilter(ioPowerFilter, width);
-        this.ioAccrNormFilter = new TeeFilter(ioFilter, PowerFilter);
-        this.accrNormFilter = new NormFilter(ioAccrNormFilter, SensorManager.STANDARD_GRAVITY);
-        this.ioAccrFilter = new TeeFilter(ioFilter, accrNormFilter);
-        this.accResamplingFilter = new ResamplingFilter(ioAccrFilter, width, resamplingRate);
+        this.delayedMagnFilter = new DelayFilter(ioFilter, width, meanPowerWindow / 2, resamplingRate);
+        //this.delayedStdFilter = new DelayFilter(ioFilter, width, meanPowerWindow / 2, resamplingRate);
+        //this.ioStdFilter = new TeeFilter(ioFilter, delayedStdFilter);
+        this.stdFilter = new SlidingStandardDeviationFilter(ioFilter, width, meanPowerWindow);
+        //this.ioMagnFilter = new TeeFilter(ioFilter, stdFilter);
+        this.teeMagnFilter = new TeeFilter(delayedMagnFilter, stdFilter);
+        this.magnFilter = new NormFilter(teeMagnFilter);
+        //this.ioAccrFilter = new TeeFilter(ioFilter, magnFilter);
+        this.accResamplingFilter = new ResamplingFilter(magnFilter, width, resamplingRate);
 
         this.sample = new Sample(width);
         this.thread = new Thread(runnable);
@@ -99,19 +106,15 @@ public class AILoop {
         return steps.get();
     }
 
-    private int getMeanPowerDelay() {
-        return resamplingRate * (meanPowerWindow / 2);
-    }
-
     public void setMeanPowerWindow(int meanPowerWindow) {
         this.meanPowerWindow = meanPowerWindow;
-        delayedAveragePowerFilter.setDelay(getMeanPowerDelay());
-        averagePowerFilter.setWindowLength(meanPowerWindow);
+        delayedMagnFilter.setSampleDelay(meanPowerWindow / 2);
+        stdFilter.setWindowLength(meanPowerWindow);
     }
 
     public void setResampleRate(int resampleRate) {
         this.resamplingRate = resampleRate;
-        delayedAveragePowerFilter.setDelay(getMeanPowerDelay());
+        delayedMagnFilter.setSampleRate(resampleRate);
         accResamplingFilter.setResampleRate(resampleRate);
     }
 }

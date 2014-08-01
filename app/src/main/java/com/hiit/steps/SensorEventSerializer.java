@@ -4,6 +4,15 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.util.Log;
 
+import com.hiit.steps.filter.DelayFilter;
+import com.hiit.steps.filter.MovingAverageFilter;
+import com.hiit.steps.filter.NormFilter;
+import com.hiit.steps.filter.ResamplingFilter;
+import com.hiit.steps.filter.SlidingStandardDeviationFilter;
+import com.hiit.steps.filter.SquareFilter;
+import com.hiit.steps.filter.TimeShiftFilter;
+
+import java.sql.Time;
 import java.util.Formatter;
 
 public class SensorEventSerializer {
@@ -26,46 +35,46 @@ public class SensorEventSerializer {
         long timestamp = Conversion.intArrayToLong(buffer, offset + 1);
         switch (type) {
             case Sensor.TYPE_ACCELEROMETER:
-                formatter.format("acc ");
+                formatter.format("acc  ");
                 break;
             case Sensor.TYPE_GYROSCOPE:
-                formatter.format("gyr ");
+                formatter.format("gyr  ");
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
-                formatter.format("mag ");
+                formatter.format("mag  ");
                 break;
             case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
-                formatter.format("gyu ");
+                formatter.format("gyu  ");
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED:
-                formatter.format("mau ");
+                formatter.format("mau  ");
                 break;
             case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE:
-                formatter.format("accr");
+                formatter.format("accr ");
                 break;
             case Sensor.TYPE_GYROSCOPE + ResamplingFilter.TYPE_RESAMPLE:
-                formatter.format("gyrr");
+                formatter.format("gyrr ");
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD + ResamplingFilter.TYPE_RESAMPLE:
-                formatter.format("magr");
+                formatter.format("magr ");
                 break;
             case Sensor.TYPE_GYROSCOPE_UNCALIBRATED + ResamplingFilter.TYPE_RESAMPLE:
-                formatter.format("gyur");
+                formatter.format("gyur ");
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED + ResamplingFilter.TYPE_RESAMPLE:
-                formatter.format("maur");
+                formatter.format("maur ");
                 break;
             case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE + NormFilter.TYPE_NORM:
-                formatter.format("accrn");
+                formatter.format("magn ");
                 break;
             case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE +
                     NormFilter.TYPE_NORM + SquareFilter.TYPE_SQUARE:
-                formatter.format("pow");
+                formatter.format("pow  ");
                 break;
             case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE +
                     NormFilter.TYPE_NORM + SquareFilter.TYPE_SQUARE +
                     MovingAverageFilter.TYPE_MOVING_AVERAGE:
-                formatter.format("powa");
+                formatter.format("powa ");
                 break;
             case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE +
                     NormFilter.TYPE_NORM + SquareFilter.TYPE_SQUARE +
@@ -73,8 +82,30 @@ public class SensorEventSerializer {
                     DelayFilter.TYPE_DELAY:
                 formatter.format("powad");
                 break;
+            case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE +
+                    NormFilter.TYPE_NORM +
+                    SlidingStandardDeviationFilter.TYPE_STANDARD_DEVIATION:
+                formatter.format("std  ");
+                break;
+            case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE +
+                    NormFilter.TYPE_NORM +
+                    SlidingStandardDeviationFilter.TYPE_STANDARD_DEVIATION +
+                    DelayFilter.TYPE_DELAY:
+                formatter.format("stdd ");
+                break;
+            case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE +
+                    NormFilter.TYPE_NORM +
+                    SlidingStandardDeviationFilter.TYPE_STANDARD_DEVIATION +
+                    TimeShiftFilter.TYPE_TIME_SHIFT: // :/
+                formatter.format("stdt ");
+                break;
+            case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE +
+                    NormFilter.TYPE_NORM +
+                    DelayFilter.TYPE_DELAY:
+                formatter.format("magnd");
+                break;
             default:
-                Log.d("Steps", "unrecognized type: " + type);
+                formatter.format("x%d", type);
                 break;
         }
         formatter.format(" %d", timestamp);

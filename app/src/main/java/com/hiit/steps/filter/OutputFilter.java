@@ -1,4 +1,7 @@
-package com.hiit.steps;
+package com.hiit.steps.filter;
+
+import com.hiit.steps.Sample;
+import com.hiit.steps.filter.Filter;
 
 public class OutputFilter implements Filter {
 

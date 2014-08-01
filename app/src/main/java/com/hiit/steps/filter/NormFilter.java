@@ -1,4 +1,7 @@
-package com.hiit.steps;
+package com.hiit.steps.filter;
+
+import com.hiit.steps.Sample;
+import com.hiit.steps.filter.Filter;
 
 public class NormFilter implements Filter {
 
@@ -8,11 +11,11 @@ public class NormFilter implements Filter {
     private Sample sample;
     private float offset;
 
-    NormFilter(Filter output) {
+    public NormFilter(Filter output) {
         this(output, 0);
     }
 
-    NormFilter(Filter output, float offset) {
+    public NormFilter(Filter output, float offset) {
         this.output = output;
         this.sample = new Sample(1);
         this.sample.valueCount = 1;

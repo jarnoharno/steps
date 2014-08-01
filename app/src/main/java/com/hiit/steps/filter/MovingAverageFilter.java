@@ -1,6 +1,6 @@
-package com.hiit.steps;
+package com.hiit.steps.filter;
 
-import android.util.Log;
+import com.hiit.steps.Sample;
 
 public class MovingAverageFilter extends OutputFilter {
 
