@@ -72,7 +72,7 @@ public class AILoop {
            CachedIntArrayBufferQueue ioQueue,
            StepsCallback stepsCallback) {
         int width = Sample.intBufferValueCount(sensorQueue.getWidth());
-        this.ioQueue = ioQueue;
+        this.ioQueue = ioQueue;q
 
         // filters created from end to beginning in pipeline
         this.ioFilter = new QueueFilter(ioQueue);
