@@ -5,13 +5,16 @@ import android.hardware.Sensor;
 
 import com.hiit.steps.filter.DelayFilter;
 import com.hiit.steps.filter.Filter;
+import com.hiit.steps.filter.MovingAverageFilter;
 import com.hiit.steps.filter.NormFilter;
+import com.hiit.steps.filter.PeakFilter;
 import com.hiit.steps.filter.QueueFilter;
+import com.hiit.steps.filter.RelayFilter;
 import com.hiit.steps.filter.ResamplingFilter;
-import com.hiit.steps.filter.SampleDelayFilter;
 import com.hiit.steps.filter.SlidingStandardDeviationFilter;
 import com.hiit.steps.filter.TeeFilter;
-import com.hiit.steps.filter.TimeShiftFilter;
+import com.hiit.steps.filter.ThresholdFilter;
+import com.hiit.steps.filter.WindowedPeakFilter;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,8 +24,6 @@ public class AILoop {
 
     private CachedIntArrayBufferQueue sensorQueue;
     private CachedIntArrayBufferQueue ioQueue;
-
-    private AtomicInteger steps = new AtomicInteger();
 
     private Runnable runnable = new Runnable() {
         @Override
@@ -41,12 +42,18 @@ public class AILoop {
 
     private ResamplingFilter accResamplingFilter;
     private Filter ioFilter;
-    //private Filter ioAccrFilter;
     private Filter magnFilter;
+    private Filter ioMagnFilter;
     private Filter teeMagnFilter;
-    //private Filter ioMagnFilter;
     private SlidingStandardDeviationFilter stdFilter;
-    private DelayFilter delayedMagnFilter;
+    private Filter ioStdFilter;
+    private ThresholdFilter stdThFilter; // these events are delayed by std_wnd / 2
+    private Filter ioStdThFilter;
+    private MovingAverageFilter maFilter; // these events are delayed by ma_wnd / 2 (< std_wnd)
+    private DelayFilter delayedMaFilter; // delay by (std_wnd - ma_wnd) / 2
+    private Filter ioDelayedMaFilter;
+    private RelayFilter relayFilter;
+    private WindowedPeakFilter peakFilter;
 
     private Sample sample;
 
@@ -67,12 +74,20 @@ public class AILoop {
                 case Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED:
                     break;
             }
-            //ioFilter.filter(sample);
+            ioFilter.filter(sample);
         }
     }
 
-    private int resamplingRate = 10000; // 10 ms
-    private int meanPowerWindow = 100; // 1 s
+    private int resamplingRate = 10000;     // 10 ms
+
+    // parameter values from Brajdic, Harle, 2013
+
+    private int stdWindow = 80;             // 0.8 s
+    private float stdThreshold = 0.6f;      // 0.6 m/s^2
+    private int maWindow = 31;              // 0.31 s
+    private long peakMinDistance = 590000;  // 0.59 s
+
+    private int peakWindow = 120;           // 1.2 s
 
     AILoop(Context context,
            CachedIntArrayBufferQueue sensorQueue,
@@ -83,14 +98,18 @@ public class AILoop {
 
         // filters created from end to beginning in pipeline
         this.ioFilter = new QueueFilter(ioQueue);
-        this.delayedMagnFilter = new DelayFilter(ioFilter, width, meanPowerWindow / 2, resamplingRate);
-        //this.delayedStdFilter = new DelayFilter(ioFilter, width, meanPowerWindow / 2, resamplingRate);
-        //this.ioStdFilter = new TeeFilter(ioFilter, delayedStdFilter);
-        this.stdFilter = new SlidingStandardDeviationFilter(ioFilter, width, meanPowerWindow);
-        //this.ioMagnFilter = new TeeFilter(ioFilter, stdFilter);
-        this.teeMagnFilter = new TeeFilter(delayedMagnFilter, stdFilter);
-        this.magnFilter = new NormFilter(teeMagnFilter);
-        //this.ioAccrFilter = new TeeFilter(ioFilter, magnFilter);
+        this.peakFilter = new WindowedPeakFilter(ioFilter, peakMinDistance, peakWindow, stepsCallback);
+        this.relayFilter = new RelayFilter(peakFilter, width);
+        this.ioDelayedMaFilter = new TeeFilter(ioFilter, relayFilter);
+        this.delayedMaFilter = new DelayFilter(ioDelayedMaFilter, width, (stdWindow - maWindow) / 2, resamplingRate);
+        this.maFilter = new MovingAverageFilter(delayedMaFilter, width, maWindow);
+        this.ioStdThFilter = new TeeFilter(ioFilter, relayFilter.getSwitchFilter());
+        this.stdThFilter = new ThresholdFilter(ioStdThFilter, stdThreshold);
+        this.ioStdFilter = new TeeFilter(ioFilter, stdThFilter);
+        this.stdFilter = new SlidingStandardDeviationFilter(ioStdFilter, width, stdWindow);
+        this.teeMagnFilter = new TeeFilter(maFilter, stdFilter); // maFilter MUST be first!
+        this.ioMagnFilter = new TeeFilter(ioFilter, teeMagnFilter);
+        this.magnFilter = new NormFilter(ioMagnFilter);
         this.accResamplingFilter = new ResamplingFilter(magnFilter, width, resamplingRate);
 
         this.sample = new Sample(width);
@@ -103,18 +122,29 @@ public class AILoop {
     }
 
     public int getSteps() {
-        return steps.get();
+        return peakFilter.getSteps();
     }
 
-    public void setMeanPowerWindow(int meanPowerWindow) {
-        this.meanPowerWindow = meanPowerWindow;
-        delayedMagnFilter.setSampleDelay(meanPowerWindow / 2);
-        stdFilter.setWindowLength(meanPowerWindow);
+    public void setMaWindow(int window) {
+        this.maWindow = window;
+        delayedMaFilter.setSampleDelay((stdWindow - maWindow) / 2);
+        maFilter.setWindowLength(maWindow);
+    }
+
+    public void setStdWindow(int window) {
+        this.stdWindow = window;
+        delayedMaFilter.setSampleDelay((stdWindow - maWindow) / 2);
+        stdFilter.setWindowLength(window);
     }
 
     public void setResampleRate(int resampleRate) {
         this.resamplingRate = resampleRate;
-        delayedMagnFilter.setSampleRate(resampleRate);
+        delayedMaFilter.setSampleRate(resampleRate);
         accResamplingFilter.setResampleRate(resampleRate);
+    }
+
+    public void setStdThreshold(float threshold) {
+        this.stdThreshold = threshold;
+        this.stdThFilter.setThreshold(threshold);
     }
 }

@@ -189,13 +189,21 @@ public class StepsService extends Service implements StepsCallback {
             if (sampleRate != null) {
                 stroll.setSampleRate(sampleRate.intValue());
             }
-            Integer resampleRate = (Integer) bundle.get(Configuration.RESAMPLE_RATE);
+            Integer resampleRate = (Integer) bundle.get(Configuration.EXTRA_RESAMPLE_RATE);
             if (resampleRate != null) {
                 stroll.setResampleRate(resampleRate.intValue());
             }
-            Integer meanPowerWindow = (Integer) bundle.get(Configuration.EXTRA_MEAN_POWER_WINDOW);
-            if (meanPowerWindow != null) {
-                stroll.setMeanPowerWindow(meanPowerWindow.intValue());
+            Integer stdWindow = (Integer) bundle.get(Configuration.EXTRA_STD_WINDOW);
+            if (stdWindow != null) {
+                stroll.setStdWindow(stdWindow.intValue());
+            }
+            Float stdThreshold = (Float) bundle.get(Configuration.EXTRA_STD_THRESHOLD);
+            if (stdThreshold != null) {
+                stroll.setStdThreshold(stdThreshold.floatValue());
+            }
+            Integer maWindow = (Integer) bundle.get(Configuration.EXTRA_MA_WINDOW);
+            if (maWindow != null) {
+                stroll.setMaWindow(maWindow.intValue());
             }
         }
 

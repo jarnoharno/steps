@@ -1,21 +1,21 @@
 #!/usr/bin/env groovy
 
 if (!args) {
-  println 'Usage: steps args...'
-  System.exit(1)
+    println 'Usage: steps args...'
+    System.exit(1)
 }
 
 def run(Object... objs) {
-  def cmd = objs.join(' ')
-  println(cmd)
-  cmd.execute()
+    def cmd = objs.join(' ')
+    println(cmd)
+    cmd.execute()
 }
 
 def receiver = 'com.hiit.steps/.StepsReceiver'
 def adb = 'adb'
 
 def devices = run(adb, 'devices').text.split('\n').drop(1)
-  .collect({ it.split()[0] })
+        .collect({ it.split()[0] })
 
 adb += ' -s ' + devices[0]
 
@@ -23,63 +23,72 @@ def storage = run(adb, 'shell echo \$EXTERNAL_STORAGE').text.trim()
 storage += '/Android/data/com.hiit.steps/files'
 
 def params() {
-  ret = []
-  for (int i = 1; i < args.size(); ++i) {
-    switch (args[i]) {
-      // time in seconds
-      case '-t':
-        def us = (args[++i].toDouble() * 1e6).intValue()
-        ret.push('--el max_timestamp ' + us)
-        break;
-      // sample rate in milliseconds
-      case '-s':
-        def us = args[++i].toInteger() * 1000
-        ret.push('--ei sample_rate ' + us)
-        break;
-      // resample rate in milliseconds
-      case '-r':
-          def us = args[++i].toInteger() * 1000
-          ret.push('--ei resample_rate ' + us)
-          break;
-      // mean power window in samples
-      case '-w':
-        def n = args[++i].toInteger();
-        ret.push('--ei mean_power_win ' + n)
-        break;
+    ret = []
+    for (int i = 1; i < args.size(); ++i) {
+        switch (args[i]) {
+            // time in seconds
+            case '-t':
+                def us = (args[++i].toDouble() * 1e6).intValue()
+                ret.push('--el max_timestamp ' + us)
+                break;
+            // sample rate in milliseconds
+            case '-s':
+                def us = args[++i].toInteger() * 1000
+                ret.push('--ei sample_rate ' + us)
+                break;
+            // resample rate in milliseconds
+            case '-r':
+                def us = args[++i].toInteger() * 1000
+                ret.push('--ei resample_rate ' + us)
+                break;
+            // standard deviation window in samples
+            case '-w':
+                def n = args[++i].toInteger()
+                ret.push('--ei std_wnd ' + n)
+                break;
+        // moving average window in samples
+            case '-m':
+                def n = args[++i].toInteger()
+                ret.push('--ei ma_wnd ' + n)
+                break;
+            // standard deviation threshold
+            case '-h':
+                def th = args[++i].toFloat()
+                ret.push('--ef std_th ' + th)
+        }
     }
-  }
-  return ret
+    return ret
 }
 
 def broadcast(Object... objs) {
-  def out = run(*objs).text
-  def rows = (out =~ /result=(-?\d*)/)[0][1]
-  def output = (out =~ /data="([^"]*)"/)
-  println(rows)
-  if (output) {
-    output = output[0][1]
-    println(output)
-  }
+    def out = run(*objs).text
+    def rows = (out =~ /result=(-?\d*)/)[0][1]
+    def output = (out =~ /data="([^"]*)"/)
+    println(rows)
+    if (output) {
+        output = output[0][1]
+        println(output)
+    }
 }
 
 switch (args[0]) {
-case 'pull':
-  def pulls = args.drop(1).collect({ storage + '/' + it })
-  if (!pulls)
-    pulls = [ storage ]
-  pulls.each({
-    print(run(adb, 'pull', it, 'data').err.text)
-  })
-  break
-case 'start':
-  run(adb, 'shell am broadcast -a start', *params(), receiver)
-  break
-case 'stop':
-  broadcast(adb, 'shell am broadcast -a stop', receiver)
-  break
-case 'run':
-  broadcast(adb, 'shell am broadcast -a run', *params(), receiver)
-  break
-default:
-  print(run(adb, 'shell cd', storage, '&&', *args).text)
+    case 'pull':
+        def pulls = args.drop(1).collect({ storage + '/' + it })
+        if (!pulls)
+            pulls = [storage]
+        pulls.each({
+            print(run(adb, 'pull', it, 'data').err.text)
+        })
+        break
+    case 'start':
+        run(adb, 'shell am broadcast -a start', *params(), receiver)
+        break
+    case 'stop':
+        broadcast(adb, 'shell am broadcast -a stop', receiver)
+        break
+    case 'run':
+        broadcast(adb, 'shell am broadcast -a run', *params(), receiver)
+        break
+    default:
+        print(run(adb, 'shell cd', storage, '&&', *args).text)
 }

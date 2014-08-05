@@ -7,10 +7,14 @@ import android.util.Log;
 import com.hiit.steps.filter.DelayFilter;
 import com.hiit.steps.filter.MovingAverageFilter;
 import com.hiit.steps.filter.NormFilter;
+import com.hiit.steps.filter.PeakFilter;
+import com.hiit.steps.filter.RelayFilter;
 import com.hiit.steps.filter.ResamplingFilter;
 import com.hiit.steps.filter.SlidingStandardDeviationFilter;
 import com.hiit.steps.filter.SquareFilter;
+import com.hiit.steps.filter.ThresholdFilter;
 import com.hiit.steps.filter.TimeShiftFilter;
+import com.hiit.steps.filter.WindowedPeakFilter;
 
 import java.sql.Time;
 import java.util.Formatter;
@@ -103,6 +107,32 @@ public class SensorEventSerializer {
                     NormFilter.TYPE_NORM +
                     DelayFilter.TYPE_DELAY:
                 formatter.format("magnd");
+                break;
+            case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE +
+                    NormFilter.TYPE_NORM +
+                    SlidingStandardDeviationFilter.TYPE_STANDARD_DEVIATION +
+                    ThresholdFilter.TYPE_THRESHOLD:
+                formatter.format("stdth");
+                break;
+            case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE +
+                    NormFilter.TYPE_NORM +
+                    MovingAverageFilter.TYPE_MOVING_AVERAGE +
+                    DelayFilter.TYPE_DELAY:
+                formatter.format("mad  ");
+                break;
+            case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE +
+                    NormFilter.TYPE_NORM +
+                    MovingAverageFilter.TYPE_MOVING_AVERAGE +
+                    DelayFilter.TYPE_DELAY + RelayFilter.TYPE_RELAY +
+                    PeakFilter.TYPE_PEAK:
+                formatter.format("map  ");
+                break;
+            case Sensor.TYPE_ACCELEROMETER + ResamplingFilter.TYPE_RESAMPLE +
+                    NormFilter.TYPE_NORM +
+                    MovingAverageFilter.TYPE_MOVING_AVERAGE +
+                    DelayFilter.TYPE_DELAY + RelayFilter.TYPE_RELAY +
+                    WindowedPeakFilter.TYPE_WINDOWED_PEAK:
+                formatter.format("map  ");
                 break;
             default:
                 formatter.format("x%d", type);

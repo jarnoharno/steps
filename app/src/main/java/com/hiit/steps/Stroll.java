@@ -27,7 +27,7 @@ public class Stroll {
     private PowerManager powerManager;
     private PowerManager.WakeLock wakeLock;
 
-    Stroll(Context context, StepsCallback stepsCallback, Runnable serviceDone) {
+    public Stroll(Context context, StepsCallback stepsCallback, Runnable serviceDone) {
         log("construct");
         this.serviceDone = serviceDone;
         powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
@@ -112,11 +112,19 @@ public class Stroll {
         return ioLoop.getFile();
     }
 
-    public void setMeanPowerWindow(int windowLength) {
-        aiLoop.setMeanPowerWindow(windowLength);
+    public void setMaWindow(int window) {
+        aiLoop.setMaWindow(window);
+    }
+
+    public void setStdWindow(int window) {
+        aiLoop.setStdWindow(window);
     }
 
     public void setResampleRate(int resampleRateUs) {
         aiLoop.setResampleRate(resampleRateUs);
+    }
+
+    public void setStdThreshold(float threshold) {
+        aiLoop.setStdThreshold(threshold);
     }
 }
