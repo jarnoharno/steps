@@ -145,16 +145,28 @@ public class WindowedPeakFilter extends OutputFilter implements ResetFilter {
             if (!peak.included)
                 continue;
             // prune left side
-            while (peak.prev != null && (peak.timestamp - peak.prev.timestamp) < minDistance) {
-                peak.prev.included = false;
+            while (peak.prev != null) {
+                if ((peak.timestamp - peak.prev.timestamp) < minDistance) {
+                    peak.prev.included = false;
+                } else {
+                    peak.prev.next = peak;
+                    break;
+                }
+                peak.prev.next = peak;
                 peak.prev = peak.prev.prev;
             }
             // check if first peak in range
             if (peak.prev == null)
                 first = peak;
             // prune right side
-            while (peak.next != null && (peak.next.timestamp - peak.timestamp) < minDistance) {
-                peak.next.included = false;
+            while (peak.next != null) {
+                if ((peak.next.timestamp - peak.timestamp) < minDistance) {
+                    peak.next.included = false;
+                } else {
+                    peak.next.prev = peak;
+                    break;
+                }
+                peak.next.prev = peak;
                 peak.next = peak.next.next;
             }
         }

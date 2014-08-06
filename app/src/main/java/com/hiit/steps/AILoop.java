@@ -87,7 +87,7 @@ public class AILoop {
     private int maWindow = 31;              // 0.31 s
     private long peakMinDistance = 590000;  // 0.59 s
 
-    private int peakWindow = 120;           // 1.2 s
+    private int peakWindow = 200;           // 2 s
 
     AILoop(Context context,
            CachedIntArrayBufferQueue sensorQueue,

@@ -46,7 +46,7 @@ def params() {
                 def n = args[++i].toInteger()
                 ret.push('--ei std_wnd ' + n)
                 break;
-        // moving average window in samples
+            // moving average window in samples
             case '-m':
                 def n = args[++i].toInteger()
                 ret.push('--ei ma_wnd ' + n)
@@ -64,10 +64,12 @@ def broadcast(Object... objs) {
     def out = run(*objs).text
     def rows = (out =~ /result=(-?\d*)/)[0][1]
     def output = (out =~ /data="([^"]*)"/)
-    println(rows)
+    println('rows=' + rows)
     if (output) {
-        output = output[0][1]
-        println(output)
+        def file = (output[0][1] =~ /([^\/]*)$/)
+        file = file[0][1]
+        println('file=' + file)
+        file
     }
 }
 
@@ -88,6 +90,12 @@ switch (args[0]) {
         break
     case 'run':
         broadcast(adb, 'shell am broadcast -a run', *params(), receiver)
+        break
+    case 'runpull':
+        def file = broadcast(adb, 'shell am broadcast -a run', *params(), receiver)
+        if (file) {
+           print(run(adb, 'pull', storage + '/' + file, 'data').err.text)
+        }
         break
     default:
         print(run(adb, 'shell cd', storage, '&&', *args).text)
