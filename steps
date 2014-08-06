@@ -28,7 +28,7 @@ def params() {
         switch (args[i]) {
             // time in seconds
             case '-t':
-                def us = (args[++i].toDouble() * 1e6).intValue()
+                long us = (args[++i].toDouble() * 1e9).longValue()
                 ret.push('--el max_timestamp ' + us)
                 break;
             // sample rate in milliseconds
@@ -38,8 +38,8 @@ def params() {
                 break;
             // resample rate in milliseconds
             case '-r':
-                def us = args[++i].toInteger() * 1000
-                ret.push('--ei resample_rate ' + us)
+                long us = args[++i].toLong() * 1000000L
+                ret.push('--el resample_rate ' + us)
                 break;
             // standard deviation window in samples
             case '-w':

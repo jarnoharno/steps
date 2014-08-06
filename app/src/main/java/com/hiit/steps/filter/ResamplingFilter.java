@@ -7,59 +7,59 @@ public class ResamplingFilter implements Filter {
 
     public static final int TYPE_RESAMPLE = 1000; // added to original type
 
-    private int resampleRate;
+    private long resampleRate;
 
     private Sample sample; // last sample
-    private Sample previous; // previous source event
+    private long prevTimestamp;
+    private double[] prevValues;
 
     private Filter output;
 
-    public ResamplingFilter(Filter output, int width) {
-        this(output, width, 10000); // 10 ms
-    }
-
-    public ResamplingFilter(Filter output, int width, int resampleRate) {
+    public ResamplingFilter(Filter output, int width, long resampleRate) {
         this.resampleRate = resampleRate;
         this.output = output;
-        this.previous = new Sample(width);
-        this.previous.timestamp = -resampleRate;
+        this.prevTimestamp = -resampleRate;
+        this.prevValues = new double[width];
         this.sample = new Sample(width);
         this.sample.timestamp = -resampleRate;
-        this.deltas = new float[width];
+        this.deltas = new double[width];
     }
 
-    private float[] deltas;
+    private double[] deltas;
 
     public void filter(final Sample next) {
-        int timeDiff = (int) (next.timestamp - sample.timestamp);
+        long timeDiff = next.timestamp - sample.timestamp;
         if (timeDiff >= resampleRate) {
-            int sampleCount = timeDiff / resampleRate;
-            int prevTimeDiff = (int) (next.timestamp - previous.timestamp);
+            int sampleCount = (int) (timeDiff / resampleRate);
+            long prevTimeDiff = next.timestamp - prevTimestamp;
             // calculate deltas
             for (int j = 0; j < next.valueCount; ++j) {
-                float valueDiff = next.values[j] - previous.values[j];
+                double valueDiff = (double) next.values[j] - prevValues[j];
                 deltas[j] = valueDiff / prevTimeDiff;
             }
-            // resample
+            // interpolate
             for (int k = 0; k < sampleCount; ++k) {
                 sample.type = next.type + TYPE_RESAMPLE;
                 sample.valueCount = next.valueCount;
                 sample.timestamp += resampleRate;
-                int dt = (int) (sample.timestamp - previous.timestamp);
+                long dt = sample.timestamp - prevTimestamp;
                 for (int j = 0; j < next.valueCount; ++j) {
-                    sample.values[j] = previous.values[j] + deltas[j] * dt;
+                    sample.values[j] = (float) (prevValues[j] + deltas[j] * dt);
                 }
                 // forward
                 output.filter(sample);
             }
         }
-        previous.copyFrom(next);
+        prevTimestamp = next.timestamp;
+        for (int i = 0; i < next.valueCount; ++i) {
+            prevValues[i] = next.values[i];
+        }
     }
 
-    public void setResampleRate(int resampleRate) {
+    public void setResampleRate(long resampleRate) {
         this.resampleRate = resampleRate;
         if (this.sample.timestamp < 0) {
-            this.previous.timestamp = -resampleRate;
+            this.prevTimestamp = -resampleRate;
             this.sample.timestamp = -resampleRate;
         }
     }

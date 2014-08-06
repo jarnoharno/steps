@@ -73,7 +73,6 @@ public class SensorLoop {
             } else {
                 event.timestamp -= firstTimestamp;
             }
-            event.timestamp /= 1000; // scale to μs
             SensorEventSerializer.toIntArray(event, queue.obtain().data);
             queue.put();
             if (maxTimestamp >= 0 && event.timestamp > maxTimestamp) {

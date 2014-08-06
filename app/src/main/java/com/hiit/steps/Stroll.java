@@ -120,7 +120,7 @@ public class Stroll {
         aiLoop.setStdWindow(window);
     }
 
-    public void setResampleRate(int resampleRateUs) {
+    public void setResampleRate(long resampleRateUs) {
         aiLoop.setResampleRate(resampleRateUs);
     }
 

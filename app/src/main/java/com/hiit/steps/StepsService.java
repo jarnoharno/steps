@@ -189,9 +189,9 @@ public class StepsService extends Service implements StepsCallback {
             if (sampleRate != null) {
                 stroll.setSampleRate(sampleRate.intValue());
             }
-            Integer resampleRate = (Integer) bundle.get(Configuration.EXTRA_RESAMPLE_RATE);
+            Long resampleRate = (Long) bundle.get(Configuration.EXTRA_RESAMPLE_RATE);
             if (resampleRate != null) {
-                stroll.setResampleRate(resampleRate.intValue());
+                stroll.setResampleRate(resampleRate.longValue());
             }
             Integer stdWindow = (Integer) bundle.get(Configuration.EXTRA_STD_WINDOW);
             if (stdWindow != null) {

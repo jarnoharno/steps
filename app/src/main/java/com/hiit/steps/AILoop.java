@@ -78,16 +78,16 @@ public class AILoop {
         }
     }
 
-    private int resamplingRate = 10000;     // 10 ms
+    private long resamplingRate = 10000000;     // 10 ms
 
     // parameter values from Brajdic, Harle, 2013
 
-    private int stdWindow = 80;             // 0.8 s
-    private float stdThreshold = 0.6f;      // 0.6 m/s^2
-    private int maWindow = 31;              // 0.31 s
-    private long peakMinDistance = 590000;  // 0.59 s
+    private int stdWindow = 80;                 // 0.8 s
+    private float stdThreshold = 0.6f;          // 0.6 m/s^2
+    private int maWindow = 31;                  // 0.31 s
+    private long peakMinDistance = 590000000L;  // 0.59 s
 
-    private int peakWindow = 200;           // 2 s
+    private int peakWindow = 200;               // 2 s
 
     AILoop(Context context,
            CachedIntArrayBufferQueue sensorQueue,
@@ -137,7 +137,7 @@ public class AILoop {
         stdFilter.setWindowLength(window);
     }
 
-    public void setResampleRate(int resampleRate) {
+    public void setResampleRate(long resampleRate) {
         this.resamplingRate = resampleRate;
         delayedMaFilter.setSampleRate(resampleRate);
         accResamplingFilter.setResampleRate(resampleRate);
