@@ -5,7 +5,7 @@ file = fopen(filename);
 d = textscan(file, '%d64 %d %f %f %f');
 fclose(file);
 
-t = d{1};
+t = d{1}';
 type = d{2};
 v = [d{3:5}]';
 

@@ -13,7 +13,7 @@ type = d(9, :);
 v = d(10:l, :);
 
 % assuming little-endian hardware (swapbytes)
-t = swapbytes(typecast(t(:), 'int64'));
+t = swapbytes(typecast(t(:), 'int64'))';
 v = reshape(swapbytes(typecast(v(:), 'single')), 3, n);
 
 ret = steps.load_brajdic_ret(type, t, v);
