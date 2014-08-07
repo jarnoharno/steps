@@ -1,43 +1,19 @@
 % http://www.cl.cam.ac.uk/~ab818/parseTraces.py
 function ret = load_brajdic_bin(filename)
 
-data = struct;
-file = fopen(filename, 'r', 'ieee-be.l64');
-first = int64(-1);
-while 1
-  t = fread(file, 1, '*int64');
-  if isempty(t)
-    break;
-  end
-  typei = fread(file, 1, '*int8');
-  v = fread(file, 3, 'float32');
-  switch typei
-    case 1
-      type = 'acc';
-    case 2
-      type = 'gyr';
-    case 3
-      type = 'mag';
-  end
-  if first < 0
-    first = t;
-  end
-  t = t - first;
-  if isfield(data, type)
-    data.(type).t{end+1} = t;
-    data.(type).v{end+1} = v;
-  else
-    data.(type).t = {t};
-    data.(type).v = {v};
-  end
-end
+s = dir(filename);
+l = 8 + 1 + 3 * 4;
+n = s.bytes / l;
 
-fields = fieldnames(data);
-ret = struct;
-for i = 1:size(fields, 1)
-  field = fields{i};
-  t = cell2mat(data.(field).t)';
-  v = cell2mat(data.(field).v)';
-  ret.(field) = table(t, v);
-end
-fclose(file);
+m = memmapfile(filename, 'format', {'int8', [l n], 'x'});
+
+d = m.Data.x;
+t = d(1:8,:);
+type = d(9, :);
+v = d(10:l, :);
+
+% assuming little-endian hardware (swapbytes)
+t = swapbytes(typecast(t(:), 'int64'));
+v = reshape(swapbytes(typecast(v(:), 'single')), 3, n);
+
+ret = steps.load_brajdic_ret(type, t, v);
