@@ -78,16 +78,16 @@ public class AILoop {
         }
     }
 
-    private long resamplingRate = 10000000;     // 10 ms
+    private long resamplingRate = 20000000;     // 20 ms
 
     // parameter values from Brajdic, Harle, 2013
 
-    private int stdWindow = 80;                 // 0.8 s
-    private float stdThreshold = 0.6f;          // 0.6 m/s^2
-    private int maWindow = 31;                  // 0.31 s
+    private int stdWindow = 30;                 // 0.6 s
+    private float stdThreshold = 1.0f;          // 1.0 m/s^2
+    private int maWindow = 15;                  // 0.30 s
     private long peakMinDistance = 590000000L;  // 0.59 s
 
-    private int peakWindow = 200;               // 2 s
+    private int peakWindow = 200;               // 4 s
 
     AILoop(Context context,
            CachedIntArrayBufferQueue sensorQueue,

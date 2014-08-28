@@ -5,11 +5,18 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.location.LocationProvider;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 import android.util.Log;
 
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SensorLoop {
@@ -22,7 +29,13 @@ public class SensorLoop {
 
     private static final String SENSOR_LOOP_THREAD_NAME = "SensorLoop";
 
+    private LocationManager locationManager;
+
     private SensorManager sensorManager;
+    private String[] locationProviders = {
+            LocationManager.GPS_PROVIDER,
+            LocationManager.NETWORK_PROVIDER
+    };
     private int[] sensorTypes = {
             Sensor.TYPE_ACCELEROMETER,
             //Sensor.TYPE_GYROSCOPE,
@@ -98,6 +111,53 @@ public class SensorLoop {
         }
     };
 
+    private LocationListener locationListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(Location location) {
+            log("location" +
+                    ": provider=" + location.getProvider() +
+                    ", timestamp=" + location.getElapsedRealtimeNanos() +
+                    ", lat=" + location.getLatitude() +
+                    ", lon=" + location.getLongitude() +
+                    (location.hasAccuracy() ? ", accuracy=" + location.getAccuracy() : "") +
+                    (location.hasAltitude() ? ", altitude=" + location.getAltitude() : "") +
+                    (location.hasBearing() ? ", bearing=" + location.getBearing() : "") +
+                    (location.hasSpeed() ? ", speed=" + location.getSpeed() : "") +
+                    "");
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            String statusString = "";
+            switch (status) {
+                case LocationProvider.OUT_OF_SERVICE:
+                    statusString = "OUT_OF_SERVICE";
+                    break;
+                case LocationProvider.TEMPORARILY_UNAVAILABLE:
+                    statusString = "TEMPORARILY_UNAVAILABLE";
+                    break;
+                case LocationProvider.AVAILABLE:
+                    statusString = "AVAILABLE";
+                    break;
+            }
+            String extrasString = "";
+            for (String key: extras.keySet()) {
+                extrasString += ", " + key + "=" + extras.get(key).toString();
+            }
+            log(provider + " status changed: " + statusString + extrasString);
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+            log(provider + " enabled");
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+            log(provider + " disabled");
+        }
+    };
+
     public SensorLoop(Context context,
                CachedIntArrayBufferQueue queue,
                StepsCallback stepsCallback) {
@@ -105,6 +165,7 @@ public class SensorLoop {
         handler = new Handler();
         this.queue = queue;
         callback = stepsCallback;
+        locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         for (int i = 0; i < sensorTypes.length; ++i) {
             sensors[i] = sensorManager.getDefaultSensor(sensorTypes[i]);
@@ -119,7 +180,7 @@ public class SensorLoop {
         return maxTimestamp;
     }
 
-    private int sampleRate = SensorManager.SENSOR_DELAY_FASTEST;
+    private int sampleRate = 20000; // 20 ms
 
     public void setSampleRate(int sampleRate) {
         this.sampleRate = sampleRate;
@@ -133,6 +194,10 @@ public class SensorLoop {
         log("start");
         thread.start();
         loopHandler = new Handler(thread.getLooper(), handlerCallback);
+        for (String locationProvider: locationProviders) {
+            locationManager.requestLocationUpdates(locationProvider, 0, 0,
+                    locationListener, loopHandler.getLooper());
+        }
         for (Sensor sensor: sensors) {
             sensorManager.registerListener(sensorEventListener, sensor,
                     sampleRate, loopHandler);
@@ -156,6 +221,7 @@ public class SensorLoop {
             @Override
             public void run() {
                 sensorManager.unregisterListener(sensorEventListener);
+                locationManager.removeUpdates(locationListener);
             }
         });
         queue.quit();

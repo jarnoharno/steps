@@ -93,5 +93,6 @@ me = median(err, 2);
 me(miniparami)
 pmin
 ptable(miniparami, :)
+boxplot(err(miniparami, :));
 
 ret = p;
