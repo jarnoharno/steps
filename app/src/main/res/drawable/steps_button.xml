@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:state_enabled="false"
+        android:state_focused="false"
+        android:drawable="@drawable/steps_spinning"/>
+    <item
+        android:state_enabled="false"
+        android:state_focused="true"
+        android:drawable="@drawable/steps_button_disabled_focused"/>
+    <item
+        android:state_pressed="true"
+        android:drawable="@drawable/steps_button_pressed"/>
+    <item
+        android:state_checked="true"
+        android:state_focused="true"
+        android:drawable="@drawable/steps_button_on_focused"/>
+    <item
+        android:state_checked="true"
+        android:state_focused="false"
+        android:drawable="@drawable/steps_button_on_normal"/>
+    <item
+        android:state_checked="false"
+        android:state_focused="true"
+        android:drawable="@drawable/steps_button_off_focused"/>
+    <item
+        android:state_checked="false"
+        android:state_focused="false"
+        android:drawable="@drawable/steps_button_off_normal"/>
+</selector>

@@ -261,7 +261,7 @@ public class StepsService extends Service implements StepsCallback {
                 .setContentTitle(getText(R.string.service_notification_title))
                 .setContentText(getText(R.string.service_notification_message))
                 .setTicker(getText(R.string.service_notification))
-                .setSmallIcon(android.R.drawable.ic_menu_view)
+                .setSmallIcon(R.drawable.steps_ic_stat)
                 .build();
 
         startForeground(SERVICE_NOTIFICATION_ID, notification);

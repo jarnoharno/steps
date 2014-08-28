@@ -2,16 +2,13 @@ package com.hiit.steps;
 
 import android.app.Activity;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
-import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.ToggleButton;
@@ -119,7 +116,7 @@ public class StepsActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_lifecycle_test_activity);
+        setContentView(R.layout.steps_activity);
         if (savedInstanceState != null) {
             int samples = savedInstanceState.getInt(SAMPLES_KEY_NAME, 0);
             int steps = savedInstanceState.getInt(STEPS_KEY_NAME, 0);

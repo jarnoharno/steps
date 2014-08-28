@@ -114,6 +114,7 @@ public class SensorLoop {
     private LocationListener locationListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
+
             log("location" +
                     ": provider=" + location.getProvider() +
                     ", timestamp=" + location.getElapsedRealtimeNanos() +
