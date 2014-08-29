@@ -42,8 +42,8 @@ public class Stroll {
         // Sensor.TYPE_GYROSCOPE_UNCALIBRATED        NA
         // Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED   10 Hz
 
-        sensorQueue = new CachedIntArrayBufferQueue(20, 10); // ~400 ms lag with accelerometer at 50 Hz
-        ioQueue = new CachedIntArrayBufferQueue(1000, 10);
+        sensorQueue = new CachedIntArrayBufferQueue(20, 14); // ~400 ms lag with accelerometer at 50 Hz
+        ioQueue = new CachedIntArrayBufferQueue(1000, 14);
         ioLoop = new IOLoop(context, ioQueue, done);
         aiLoop = new AILoop(context, sensorQueue, ioQueue, stepsCallback);
         sensorLoop = new SensorLoop(context, sensorQueue, stepsCallback);

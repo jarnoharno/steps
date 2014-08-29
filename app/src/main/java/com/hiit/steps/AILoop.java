@@ -2,6 +2,7 @@ package com.hiit.steps;
 
 import android.content.Context;
 import android.hardware.Sensor;
+import android.util.Log;
 
 import com.hiit.steps.filter.DelayFilter;
 import com.hiit.steps.filter.Filter;
@@ -60,6 +61,15 @@ public class AILoop {
     private void filter(IntArrayBuffer src) {
         for (int i = 0; i < src.getEnd(); ++i) {
             int offset = src.get(i);
+
+            // peek type and bypass filter graph if location data found
+            if (src.buffer[offset] < 0) {
+                IntArrayBuffer buffer = ioQueue.obtain().data;
+                System.arraycopy(src.buffer, offset, buffer.buffer, buffer.obtain(), sensorQueue.getWidth());
+                ioQueue.put();
+                continue;
+            }
+
             sample.copyFrom(src.buffer, offset);
             switch (sample.type) {
                 case Sensor.TYPE_ACCELEROMETER:

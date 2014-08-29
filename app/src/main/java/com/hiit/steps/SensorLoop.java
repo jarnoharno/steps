@@ -13,7 +13,10 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
+import android.os.SystemClock;
 import android.util.Log;
+
+import com.hiit.steps.filter.LocationSerializer;
 
 import java.util.Iterator;
 import java.util.Set;
@@ -67,6 +70,7 @@ public class SensorLoop {
     };
 
     private long firstTimestamp = -1;
+    private long firstRealTime = -1;
     private long maxTimestamp = -1;
 
     private boolean reject = false;
@@ -76,10 +80,11 @@ public class SensorLoop {
         public void onSensorChanged(SensorEvent event) {
             if (reject)
                 return;
-            callback.onSampleEvent(samples.incrementAndGet());
             if (firstTimestamp < 0) {
+                firstRealTime = SystemClock.elapsedRealtimeNanos();
                 firstTimestamp = event.timestamp;
             }
+            callback.onSampleEvent(samples.incrementAndGet());
             // in the unlikely event of wrap around
             if (event.timestamp < firstTimestamp) {
                 event.timestamp += Long.MAX_VALUE - firstTimestamp;
@@ -114,6 +119,18 @@ public class SensorLoop {
     private LocationListener locationListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
+            if (reject)
+                return;
+            // discard if not synchronized yet
+            if (firstRealTime < 0)
+                return;
+            location.setElapsedRealtimeNanos(location.getElapsedRealtimeNanos() - firstRealTime);
+            // discard if sample was acquired before synchronization
+            if (location.getElapsedRealtimeNanos() < 0)
+                return;
+            callback.onSampleEvent(samples.incrementAndGet());
+            LocationSerializer.toIntArray(location, queue.obtain().data);
+            queue.put();
 
             log("location" +
                     ": provider=" + location.getProvider() +

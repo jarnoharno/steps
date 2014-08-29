@@ -5,6 +5,8 @@ import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.hiit.steps.filter.LocationSerializer;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -51,7 +53,14 @@ public class IOLoop {
         public void writeBuffer(IntArrayBuffer buffer) {
             for (int i = 0; i < buffer.getEnd(); ++i) {
                 rows.incrementAndGet();
-                SensorEventSerializer.formatIntArray(buffer.buffer, buffer.get(i), formatter);
+                int offset = buffer.get(i);
+
+                // peek type
+                if (buffer.buffer[offset] < 0) {
+                    LocationSerializer.formatIntArray(buffer.buffer, offset, formatter);
+                } else {
+                    SensorEventSerializer.formatIntArray(buffer.buffer, offset, formatter);
+                }
             }
         }
 
