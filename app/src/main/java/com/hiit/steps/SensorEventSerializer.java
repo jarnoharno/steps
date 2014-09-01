@@ -145,7 +145,7 @@ public class SensorEventSerializer {
 
     private static void writeFloats(int[] buffer, int offset, int length, Formatter formatter) {
         for (int i = 0; i < length; ++i) {
-            formatter.format(" %f", Float.intBitsToFloat(buffer[offset + i]));
+            formatter.format(" %.8g", Float.intBitsToFloat(buffer[offset + i]));
         }
     }
 

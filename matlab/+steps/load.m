@@ -8,7 +8,11 @@ while 1
   if isempty(type)
     break;
   end
-  t = fscanf(file, '%ld', 1);
+  tsn = 1;
+  if strcmp(type, 'unk') || strcmp(type, 'gps') || strcmp(type, 'net')
+    tsn = 2;
+  end
+  t = fscanf(file, '%ld', tsn);
   v = fscanf(file, '%f'); % different types can have different number of values
   if isfield(data, type)
     data.(type).t{end+1} = t;

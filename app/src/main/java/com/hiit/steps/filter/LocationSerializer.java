@@ -68,12 +68,12 @@ public class LocationSerializer {
         }
         formatter.format(" %d", timestamp);
         formatter.format(" %d", utctime);
-        formatter.format(" %f", lat);
-        formatter.format(" %f", lon);
-        formatter.format(" %f", acc);
-        formatter.format(" %f", alt);
-        formatter.format(" %f", bea);
-        formatter.format(" %f", spe);
+        formatter.format(" %.16g", lat);
+        formatter.format(" %.16g", lon);
+        formatter.format(" %.8g", acc);
+        formatter.format(" %.16g", alt);
+        formatter.format(" %.8g", bea);
+        formatter.format(" %.8g", spe);
         formatter.format("\n");
     }
 
