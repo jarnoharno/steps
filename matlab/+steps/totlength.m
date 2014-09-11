@@ -52,3 +52,6 @@ halfstep1 = double(d.map.t(si1)-d.gps.t(gi1,1)) / double(d.map.t(si1)-d.map.t(si
 halfstep2 = double(d.map.t(si2)-d.gps.t(gi2,1)) / double(d.map.t(si2)-d.map.t(si2-1));
 steps = si2-si1+halfstep1+halfstep2;
 ret = [ret; seglen steps];
+
+% next segment start
+gi2 = 

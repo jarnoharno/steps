@@ -5,8 +5,6 @@ import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.hiit.steps.filter.LocationSerializer;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;

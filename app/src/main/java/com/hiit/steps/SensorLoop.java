@@ -16,10 +16,6 @@ import android.os.Message;
 import android.os.SystemClock;
 import android.util.Log;
 
-import com.hiit.steps.filter.LocationSerializer;
-
-import java.util.Iterator;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SensorLoop {

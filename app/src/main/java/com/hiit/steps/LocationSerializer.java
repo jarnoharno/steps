@@ -1,4 +1,4 @@
-package com.hiit.steps.filter;
+package com.hiit.steps;
 
 import android.location.Location;
 import android.location.LocationManager;
