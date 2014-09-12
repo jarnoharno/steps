@@ -24,7 +24,7 @@ end
 
 Main.show(stream::IO,p::Peak)=print(stream,"Peak($(p.index),$(p.included))")
 
-function findpeaks(x, minpeakdist=0, distf=(i,j)->j-i)
+function findpeaks(x, minpeakdist=0, distf=(i,j)->j-i,span=(1,size(x,1)))
     peaks = Peak[]
     root = Steps.Peak(0)
     root.prev = root
@@ -32,7 +32,7 @@ function findpeaks(x, minpeakdist=0, distf=(i,j)->j-i)
     prev = root
 
     # find peaks
-    for i = 2:size(x,1)-1
+    for i = span[1]+1:span[2]-1
         if x[i-1] < x[i] > x[i+1]
             p = Peak(i)
             p.prev = prev
