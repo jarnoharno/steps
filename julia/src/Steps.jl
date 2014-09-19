@@ -2,6 +2,7 @@ module Steps
 
 using DataFrames
 using Iterators
+using Dates
 
 export
     readtrace,
@@ -118,6 +119,27 @@ function cutall(d,range,rangesym=:t)
     ret
 end
 
+function mergeutrace(d,ut)
+    n = size(ut,1)
+    t = Array(Int64,n)
+    println(n)
+    for i = 1:n
+        li = Steps.binsearch(d[:gps][:u],ut[i,:u])
+        if li[1] > size(d[:gps],1)
+            v = d[:gps][li[end],:t] + (ut[i,:u] - d[:gps][li[end],:u])
+        elseif li[1] - li[end] > 0
+            v = d[:gps][li[end],:t] + diff(d[:gps][li,:t])[1] *
+                (ut[i,:u] - d[:gps][li[end],:u]) / diff(d[:gps][li,:u])[1]
+        else
+            v = d[:gps][li[1],:t]
+        end
+        t[i] = int64(v)
+    end
+    ut[:t] = t
+    d[:ubx] = ut
+    d
+end
+
 haversine(df) = haversine(df[1,:lat],df[1,:lon],df[2,:lat],df[2,:lon])
 haversine(a, b) = haversine(a[1], a[2], b[1], b[2])
 haversine(lat1,lon1,lat2,lon2) = 2 * 6372.8e3 *
@@ -166,9 +188,31 @@ function readfunc(t::DataType)
     end
 end
 
+function readutrace(file::String)
+    dt = DataFrame(u=Int64[],lat=Float64[],lon=Float64[],
+        acc=Float64[],alt=Float64[],bea=Float64[],spe=Float64[])
+    open(file) do f
+       for line = eachline(f)
+           words = split(line)
+           u = int64(datetime2unix(DateTime(words[1],"y-m-dTH:M:S.sZ")))*1000
+           # accuracy is the geometric mean of epx and epy divided by two
+           # (95% confidence -> 68%)
+           acc = sqrt(prod(float64(words[[5,6]])))/2
+           push!(dt[:u],u)
+           push!(dt[:lat],float64(words[3]))
+           push!(dt[:lon],float64(words[4]))
+           push!(dt[:acc],acc)
+           push!(dt[:alt],float64(words[7]))
+           push!(dt[:bea],float64(words[8]))
+           push!(dt[:spe],float64(words[9]))
+       end
+    end
+    dt
+end
+
 function readtrace(file::String)
     d = Dict{Symbol,DataFrame}()
-    open("data/runtti") do f
+    open(file) do f
         for line = eachline(f)
             words = split(line)
             tag = words[1]
