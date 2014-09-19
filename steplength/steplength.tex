@@ -1,0 +1,42 @@
+\documentclass[a4paper,parskip=half]{scrartcl}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}
+\usepackage[numbers]{natbib}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\setlist[description]{font={\rmfamily}}
+\addtokomafont{disposition}{\rmfamily}
+
+\author{Jarno Leppänen}
+\title{Step period vs. step length}
+
+\begin{document}
+
+\maketitle
+
+\section{Model}
+
+A log-log regression equation describes the relationship between step frequency
+and speed of walking better than linear equation for
+adults.\cite{grieve1966relationships} This relationship can be described
+mathematically as
+\begin{align} \label{eq:fvb}
+f \sim v^b,
+\end{align}
+where $f$ is the step frequency and $v$ is the walking speed. Bertram and Ruina
+gives the empirically measured value $b = 0.58$ for the exponent while Kuo gives
+$b = 0.42$.\cite{bertram2001multiple,kuo2001simple}
+
+Given that $f = 1/s$ and $v = fd$, where $s$ is the step period (temporal length of a step)
+and $d$ is the spatial step length, equation \ref{eq:fvb} can be written as
+\begin{align} \label{eq:dsa}
+d \sim s^a,
+\end{align}
+where $a = (b - 1)/b$.
+
+\bibliographystyle{plainnat}
+\bibliography{steplength}
+\end{document}

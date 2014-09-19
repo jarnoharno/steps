@@ -80,6 +80,9 @@ function findpeaks(x, minpeakdist=0, distf=(i,j)->j-i,span=(1,size(x,1)))
     ret
 end
 
+# calculate the indices of array `x` that are closest to value `v`.
+# return [infimum, supremum], if the exact value was found, both indices
+# are the same. otherwise, infimum > supremum.
 function binsearch(x, v)
     low = 1
     high = size(x, 1)
@@ -98,7 +101,8 @@ end
 
 function findrange(x,range)
     low = binsearch(x,range[1])[1]
-    [low,binsearch(x,range[end])[end]]
+    high = binsearch(x,range[end])[end]
+    [low,high]
 end
 
 function cutrange(df,range,rangesym=:t)
@@ -114,6 +118,7 @@ function cutall(d,range,rangesym=:t)
     ret
 end
 
+haversine(df) = haversine(df[1,:lat],df[1,:lon],df[2,:lat],df[2,:lon])
 haversine(a, b) = haversine(a[1], a[2], b[1], b[2])
 haversine(lat1,lon1,lat2,lon2) = 2 * 6372.8e3 *
     asin(sqrt(sind((lat2-lat1)/2)^2 + cosd(lat1) * cosd(lat2) *
