@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style type="text/css">
+      html, body, #map-canvas { height: 100%; margin: 0; padding: 0;}
+    </style>
+    <script type="text/javascript"
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgATuRWJTo9C0lpPTdn8F9BE1TbyStuc4">
+    </script>
+
+<script type="text/javascript">
+
+paths = [];
+colors = ['#0000ff','#ff0000'];
+
+function initialize() {
+  var mapOptions = {
+    center: { lat: 60.204235, lng: 24.98281 },
+    zoom: 12
+  };
+  var map = new google.maps.Map(document.getElementById('map-canvas'),
+      mapOptions);
+
+  paths.forEach(function(p,i) {
+    var coords = p.map(function(c) {
+      return new google.maps.LatLng(c[0], c[1]);
+    });
+    console.log(coords);
+    var line = new google.maps.Polyline({
+      path: coords,
+      geodesic: true,
+      strokeColor: colors[i % colors.length],
+      strokeOpacity: 1.0,
+      strokeWeight: 2
+    });
+    line.setMap(map);
+  });
+}
+
+google.maps.event.addDomListener(window, 'load', initialize);
+
+function path(p) {
+  paths.push(p);
+}
+</script>
+<script type="text/javascript" src="trace-s3.js"></script>
+<script type="text/javascript" src="trace-ublox.js"></script>
+
+  </head>
+  <body>
+<div id="map-canvas"></div>
+  </body>
+</html>

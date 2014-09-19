@@ -122,7 +122,6 @@ end
 function mergeutrace(d,ut)
     n = size(ut,1)
     t = Array(Int64,n)
-    println(n)
     for i = 1:n
         li = Steps.binsearch(d[:gps][:u],ut[i,:u])
         if li[1] > size(d[:gps],1)
@@ -145,6 +144,78 @@ haversine(a, b) = haversine(a[1], a[2], b[1], b[2])
 haversine(lat1,lon1,lat2,lon2) = 2 * 6372.8e3 *
     asin(sqrt(sind((lat2-lat1)/2)^2 + cosd(lat1) * cosd(lat2) *
     sind((lon2 - lon1)/2)^2))
+
+s = int64(1e9)
+
+# chop detected walks into segments and calculate average step lengths and
+# step periods in these segments
+function segmentize(d, timespan, segmenttimespan=20s, locsym=:gps, stepsym=:sc)
+
+    # calculate segment
+    t = [timespan[1], min(timespan[1] + segmenttimespan, timespan[2])]
+
+    # step period
+    ss = Float64[]
+    # step length
+    sd = Float64[]
+    # total length for stats
+    totlen = 0
+    # total steps for stats
+    totsteps = 0
+    while t[1] != t[2]
+        # length
+        len = 0
+        li = binsearch(d[locsym][:t],t[1])
+        li1 = li[1]
+        if li[1] - li[end] > 0
+            len += haversine(d[locsym][li,[:lat,:lon]]) *
+                ((d[locsym][li[1],:t] - t[1]) / -diff(d[locsym][li,:t])[1])
+        end
+        li = binsearch(d[locsym][:t],t[end])
+        li2 = li[end]
+        if li[1] - li[end] > 0
+            len += haversine(d[locsym][li,[:lat,:lon]]) *
+                ((t[end] - d[locsym][li[end],:t]) / -diff(d[locsym][li,:t])[1])
+        end
+        len += totlength(d[locsym][li1:li2,[:lat,:lon]])
+
+        # steps
+        steps = 0
+        li = binsearch(d[stepsym][:t],t[1])
+        li1 = li[1]
+        if li[1] - li[end] > 0
+            steps += (d[stepsym][li[1],:t] - t[1]) / -diff(d[stepsym][li,:t])[1]
+        end
+        li = binsearch(d[stepsym][:t],t[end])
+        li2 = li[end]
+        if li[1] - li[end] > 0
+            steps += (t[end] - d[stepsym][li[end],:t]) /
+                -diff(d[stepsym][li,:t])[1]
+        end
+        steps += li2 - li1
+
+        totlen += len
+        totsteps += steps
+        push!(sd,len/steps)
+        push!(ss,(t[2] - t[1])/steps/s)
+
+        t = [t[2], min(t[2] + segmenttimespan, timespan[2])]
+    end
+
+    # plot
+    DataFrame(s=ss,d=sd)
+end
+
+function exportjsonpath(df, file)
+    open(file,"w") do f
+        write(f,"path([\n")
+        n = size(df,1)
+        for i = 1:n
+            write(f,"[$(df[i,:lat]),$(df[i,:lon])],\n")
+        end
+        write(f,"])\n")
+    end
+end
 
 totlength(df::AbstractDataFrame, lenf=haversine) =
     totlength(df[:lat],df[:lon],lenf)
