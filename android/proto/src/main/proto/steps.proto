@@ -1,0 +1,10 @@
+package stepsproto;
+
+option java_package = "com.hiit.steps";
+option java_outer_classname = "StepsProto";
+
+message Sample {
+    required string type = 1;
+    required uint64 timestamp = 2;
+    repeated float values = 3;
+}
