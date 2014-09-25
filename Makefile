@@ -31,3 +31,6 @@ mergewhoop:
 
 runwhoop:
 	cat runwhoop.sh | ssh whoop.pw
+
+whoopout:
+	ssh whoop.pw cat /home/jao/steps/steps.out

@@ -94,7 +94,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 func main() {
 	sample := &stepsproto.Sample {
 		Type: proto.String("acc"),
-		Timestamp: proto.Uint64(34),
+		Timestamp: proto.Uint64(time.Now().UnixNano()),
 		Value: []float32{0.0, 0.0, 9.8},
 	}
 	data, err := proto.Marshal(sample)
