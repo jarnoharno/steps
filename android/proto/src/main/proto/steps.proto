@@ -5,6 +5,6 @@ option java_outer_classname = "StepsProtos";
 
 message Sample {
     required string type = 1;
-    required uint64 timestamp = 2;
+    required int64 timestamp = 2;
     repeated float value = 3;
 }
