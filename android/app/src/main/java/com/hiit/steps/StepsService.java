@@ -120,7 +120,7 @@ public class StepsService extends Service {
             @Override
             public void onMessage(ByteBuffer buffer) {
                 byte[] data = buffer.array();
-                print("received data: " + buffer.toString());
+                print("received data: " + Arrays.toString(data));
                 StepsProtos.Sample sample;
                 try {
                     sample = StepsProtos.Sample.parseFrom(data);
