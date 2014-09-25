@@ -9,3 +9,25 @@ steps: steps.go $(PBDIR)/steps.pb.go
 
 $(PBDIR):
 	mkdir -p $@
+
+# scripts
+
+runapp:
+	cd app
+	./gradlew --daemon installDebug && \
+		adb shell am start -n com.hiit.steps/.StepsActivity
+	cd ..
+
+whoop:
+	git checkout upload
+	git merge master
+	git push whoop upload
+	git checkout master
+	cat mergewhoop.sh | ssh whoop.pw
+	cat runwhoop.sh | ssh whoop.pw
+
+mergewhoop:
+	cat mergewhoop.sh | ssh whoop.pw
+
+runwhoop:
+	cat runwhoop.sh | ssh whoop.pw
