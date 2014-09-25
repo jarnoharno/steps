@@ -65,7 +65,7 @@ public class StepsService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        connect("ws://whoop.pw:8080/steps/ws");
+        connect("wss://whoop.pw/steps/ws");
         return START_STICKY;
     }
 
