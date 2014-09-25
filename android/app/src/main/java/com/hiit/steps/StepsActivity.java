@@ -8,14 +8,44 @@ import android.os.IBinder;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
+import android.util.Log;
 
+import java.util.Arrays;
+
+import com.google.protobuf.InvalidProtocolBufferException;
 
 public class StepsActivity extends Activity {
+
+    private void print(String s) {
+        TextView textView = (TextView) findViewById(R.id.text);
+        textView.append(s + '\n');
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_steps);
+
+        StepsProtos.Sample sample = StepsProtos.Sample.newBuilder()
+            .setType("acc")
+            .setTimestamp(System.currentTimeMillis() * 1000000)
+            .addValue(0.0f)
+            .addValue(0.0f)
+            .addValue(9.8f)
+            .build();
+
+        byte[] data = sample.toByteArray();
+        StepsProtos.Sample newSample;
+        try {
+            newSample = StepsProtos.Sample.parseFrom(data);
+        } catch (InvalidProtocolBufferException ex) {
+            Log.e("Steps", ex.toString());
+            return;
+        }
+
+        print("sample: " + sample.toString());
+        print("data: " + Arrays.toString(data));
+        print("newSample: " + newSample.toString());
     }
 
     @Override
@@ -64,7 +94,8 @@ public class StepsActivity extends Activity {
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            StepsService.StepsBinder stepsBinder = (StepsService.StepsBinder) service;
+            StepsService.StepsBinder stepsBinder =
+                (StepsService.StepsBinder) service;
             stepsService = stepsBinder.getService();
             stepsService.addLogger(logger);
             if (!stepsService.started) {
