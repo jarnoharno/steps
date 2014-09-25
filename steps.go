@@ -19,8 +19,8 @@ const (
     maxMessageSize = 512
 )
 
-//var originRegex = regexp.MustCompile("^([a-z]+\\.)*whoop\\.pw$")
-var originRegex = regexp.MustCompile("^localhost$")
+var originRegex = regexp.MustCompile("^((([a-z]+\\.)*whoop\\.pw)|localhost)$")
+//var originRegex = regexp.MustCompile("^localhost$")
 
 var upgrader = websocket.Upgrader{
     CheckOrigin: func(r *http.Request) bool {

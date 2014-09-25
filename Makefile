@@ -13,10 +13,9 @@ $(PBDIR):
 # scripts
 
 runapp:
-	cd app
-	./gradlew --daemon installDebug && \
+	cd android && \
+		./gradlew --daemon installDebug && \
 		adb shell am start -n com.hiit.steps/.StepsActivity
-	cd ..
 
 whoop:
 	git checkout upload

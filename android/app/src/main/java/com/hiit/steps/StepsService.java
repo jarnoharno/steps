@@ -13,8 +13,12 @@ import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_17;
 import org.java_websocket.handshake.ServerHandshake;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class StepsService extends Service {
 
@@ -107,7 +111,7 @@ public class StepsService extends Service {
 
             @Override
             public void onMessage(ByteBuffer buffer) {
-                byte[] data = data.array();
+                byte[] data = buffer.array();
                 print("received data: " + buffer.toString());
                 StepsProtos.Sample sample;
                 try {
