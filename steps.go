@@ -40,20 +40,33 @@ type Packet struct {
     Msg string
 }
 
-func Write(ws *websocket.Conn) {
+func Write(ws *websocket.Conn, c chan *stepsproto.Sample) {
     ticker := time.NewTicker(pingPeriod)
     defer func() {
         ticker.Stop()
         ws.Close()
     }()
     for {
-        instant := <-ticker.C
-		log.Println("PING")
-        ws.SetWriteDeadline(instant.Add(writeWait))
-        err := ws.WriteMessage(websocket.PingMessage, []byte{})
-        if err != nil {
-            log.Println(err)
-            break
+        select {
+        case instant := <-ticker.C:
+            log.Println("PING")
+            ws.SetWriteDeadline(instant.Add(writeWait))
+            err := ws.WriteMessage(websocket.PingMessage, []byte{})
+            if err != nil {
+                log.Println(err)
+                break
+            }
+        case sample := <-c:
+            data, err := proto.Marshal(sample)
+            if err != nil {
+                log.Println(err)
+            }
+            ws.SetWriteDeadline(time.Now().Add(writeWait))
+            err = ws.WriteMessage(websocket.BinaryMessage, data)
+            if err != nil {
+                log.Println(err)
+                break
+            }
         }
     }
 }
@@ -72,7 +85,8 @@ func Handle(w http.ResponseWriter, r *http.Request) {
     defer func() {
         ws.Close()
     }()
-    go Write(ws)
+    c := make(chan *stepsproto.Sample)
+    go Write(ws, c)
     ws.SetReadLimit(maxMessageSize)
     ws.SetReadDeadline(time.Now().Add(pongWait))
     ws.SetPongHandler(func(string) error {
@@ -80,14 +94,25 @@ func Handle(w http.ResponseWriter, r *http.Request) {
         ws.SetReadDeadline(time.Now().Add(pongWait))
         return nil
     })
-    var packet Packet
     for {
-        err := ws.ReadJSON(&packet)
+        mt, data, err := ws.ReadMessage()
         if err != nil {
             log.Println(err)
             break
         }
-        log.Println("msg:", packet.Msg)
+        if mt == websocket.TextMessage {
+            log.Println("text:", string(data))
+            continue
+        }
+        log.Println("bin:", data)
+        sample := &stepsproto.Sample{}
+        err = proto.Unmarshal(data, sample)
+        if err != nil {
+            log.Println("can't parse data:", err)
+            continue
+        }
+        log.Println("sample:", sample)
+        c <- sample
     }
 }
 
