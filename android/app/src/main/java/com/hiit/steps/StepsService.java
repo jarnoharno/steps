@@ -1,5 +1,15 @@
 package com.hiit.steps;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -9,16 +19,13 @@ import android.os.IBinder;
 import android.util.Log;
 
 import org.java_websocket.WebSocket;
+import org.java_websocket.WebSocketImpl;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_17;
 import org.java_websocket.handshake.ServerHandshake;
+import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 public class StepsService extends Service {
 
@@ -79,7 +86,8 @@ public class StepsService extends Service {
             return;
         }
 
-        print("opening websocket");
+        WebSocketImpl.DEBUG = true;
+
         webSocketClient = new WebSocketClient(uri, new Draft_17()) {
             @Override
             public void onOpen(ServerHandshake serverHandshake) {
@@ -126,7 +134,8 @@ public class StepsService extends Service {
 
             @Override
             public void onClose(int i, String s, boolean b) {
-                Log.i("Websocket", "Closed " + s);
+                Log.i("Websocket", "Closed: code: " + i + ", reason: " +
+                        ", remote: " + b);
                 print("websocket closed");
                 webSocketClient = null;
             }
@@ -137,6 +146,27 @@ public class StepsService extends Service {
                 print("websocket error: " + e.getMessage());
             }
         };
+        print("opening websocket");
+        SSLContext sslContext = null;
+        try {
+            sslContext = SSLContext.getInstance("TLS");
+        } catch (NoSuchAlgorithmException ex) {
+            Log.e("Websocket", "Unrecognized algorithm");
+            print("Unrecognized algorithm");
+            return;
+        }
+        try {
+            //sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(),
+            //      null);
+            sslContext.init(null, null, null); // default
+        } catch (KeyManagementException ex) {
+            Log.e("Websocket", "Error initializing SSL context " +
+                    ex.toString());
+            print("Error initializing SSL context");
+            return;
+        }
+        webSocketClient.setWebSocketFactory(
+                new DefaultSSLWebSocketClientFactory(sslContext));
         webSocketClient.connect();
     }
 
