@@ -5,3 +5,5 @@ local.properties
 build
 stepsproto
 /steps
+/ublox/ublox
+/ublox/*.log
