@@ -93,9 +93,9 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	sample := &stepsproto.Sample {
-		Type: proto.String("wd"),
+		Type: proto.String("acc"),
 		Timestamp: proto.Uint64(34),
-		Values: []float32{1.0, 2.0},
+		Value: []float32{0.0, 0.0, 9.8},
 	}
 	data, err := proto.Marshal(sample)
 	if err != nil {

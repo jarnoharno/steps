@@ -70,32 +70,67 @@ public class StepsService extends Service {
         try {
             uri = new URI(addr);
         } catch (URISyntaxException e) {
-            sendLogger(e.toString());
+            print(e.toString());
             e.printStackTrace();
             return;
         }
 
+        print("opening websocket");
         webSocketClient = new WebSocketClient(uri, new Draft_17()) {
             @Override
             public void onOpen(ServerHandshake serverHandshake) {
                 Log.i("Websocket", "Opened");
+                print("websocket opened");
+
+                // Send sample
+
+                StepsProtos.Sample sample = StepsProtos.Sample.newBuilder()
+                    .setType("acc")
+                    .setTimestamp(System.currentTimeMillis() * 1000000)
+                    .addValue(0.0f)
+                    .addValue(0.0f)
+                    .addValue(9.8f)
+                    .build();
+
+                byte[] data = sample.toByteArray();
+                webSocketClient.send(data);
+
+                print("sent sample: " + sample.toString());
+                print("sent data: " + Arrays.toString(data));
             }
 
             @Override
             public void onMessage(String s) {
                 Log.i("Websocket", "Message " + s);
-                sendLogger(s);
+                print("received message: " + s);
+            }
+
+            @Override
+            public void onMessage(ByteBuffer buffer) {
+                byte[] data = data.array();
+                print("received data: " + buffer.toString());
+                StepsProtos.Sample sample;
+                try {
+                    sample = StepsProtos.Sample.parseFrom(data);
+                } catch (InvalidProtocolBufferException ex) {
+                    print("unable to parse data");
+                    Log.e("Steps", ex.toString());
+                    return;
+                }
+                print("received sample: " + sample.toString());
             }
 
             @Override
             public void onClose(int i, String s, boolean b) {
                 Log.i("Websocket", "Closed " + s);
+                print("websocket closed");
                 webSocketClient = null;
             }
 
             @Override
             public void onError(Exception e) {
                 Log.i("Websocket", "Error " + e.getMessage());
+                print("websocket error: " + e.getMessage());
             }
         };
         webSocketClient.connect();
@@ -111,7 +146,7 @@ public class StepsService extends Service {
         super.onDestroy();
     }
 
-    private void sendLogger(String s) {
+    private void print(String s) {
         if (logger == null) {
             return;
         }

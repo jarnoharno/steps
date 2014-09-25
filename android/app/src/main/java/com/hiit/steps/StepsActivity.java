@@ -26,26 +26,6 @@ public class StepsActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_steps);
 
-        StepsProtos.Sample sample = StepsProtos.Sample.newBuilder()
-            .setType("acc")
-            .setTimestamp(System.currentTimeMillis() * 1000000)
-            .addValue(0.0f)
-            .addValue(0.0f)
-            .addValue(9.8f)
-            .build();
-
-        byte[] data = sample.toByteArray();
-        StepsProtos.Sample newSample;
-        try {
-            newSample = StepsProtos.Sample.parseFrom(data);
-        } catch (InvalidProtocolBufferException ex) {
-            Log.e("Steps", ex.toString());
-            return;
-        }
-
-        print("sample: " + sample.toString());
-        print("data: " + Arrays.toString(data));
-        print("newSample: " + newSample.toString());
     }
 
     @Override
