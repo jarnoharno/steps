@@ -89,7 +89,7 @@ func loop(gpsData *GpsData) {
 		prevTime = g.fix.time
 		fixTime := int64(g.fix.time * 1e3)
 		accuracy := math.Sqrt(float64(g.fix.epx) * float64(g.fix.epy)) / 2.0
-		fmt.Printf("%d %d %f %f %f %f %f %f\n",
+		fmt.Printf("%d %d %.8f %.8f %f %f %f %f\n",
 			nanoTime,
 			fixTime,
 			g.fix.latitude,
