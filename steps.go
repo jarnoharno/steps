@@ -53,7 +53,7 @@ func Write(ws *websocket.Conn, c chan *stepsproto.Sample) {
             err := ws.WriteMessage(websocket.PingMessage, []byte{})
             if err != nil {
                 log.Println(err)
-                break
+                return
             }
         case sample := <-c:
             data, err := proto.Marshal(sample)
@@ -64,7 +64,7 @@ func Write(ws *websocket.Conn, c chan *stepsproto.Sample) {
             err = ws.WriteMessage(websocket.BinaryMessage, data)
             if err != nil {
                 log.Println(err)
-                break
+                return
             }
         }
     }
@@ -97,7 +97,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
         mt, data, err := ws.ReadMessage()
         if err != nil {
             log.Println(err)
-            break
+            return
         }
         if mt == websocket.TextMessage {
             log.Println("text:", string(data))

@@ -3,12 +3,15 @@ package com.hiit.steps;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Deque;
+import java.util.List;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
 
 import android.app.Service;
 import android.content.Context;
@@ -27,32 +30,57 @@ import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import com.hiit.steps.StepsProtos.Sample;
+import com.hiit.steps.StepsProtos.SensorEvent;
+
 public class StepsService extends Service {
+
+    public enum State {
+        STARTING,
+        STARTED,
+        STOPPING,
+        STOPPED
+    }
 
     // public interface
 
-    public static interface Logger {
-        public void send(String msg);
+    public static interface Client {
+        public void print(String msg);
+        public void serviceStateChanged(State state);
     }
 
-    public void addLogger(Logger logger) {
-        this.logger = logger;
+    public void addClient(Client client) {
+        this.client = client;
     }
 
-    public void removeLogger(Logger logger) {
-        this.logger = null;
+    public void removeClient(Client client) {
+        this.client = null;
+    }
+
+    public State getServiceState() {
+        return serviceState;
+    }
+
+    public State getTraceState() {
+        return traceState;
+    }
+
+    public Deque<String> getOutputBuffer() {
+        return outputBuffer;
     }
 
     public void start(Context context) {
         Intent intent = new Intent(context, StepsService.class);
+        client.serviceStateChanged(State.STARTING);
         context.startService(intent);
-        started = true;
     }
 
     public void stop(Context context) {
         Intent intent = new Intent(context, StepsService.class);
+        client.serviceStateChanged(State.STOPPING);
         context.stopService(intent);
-        started = false;
+        disconnect();
+        client.serviceStateChanged(State.STOPPED);
     }
 
     public static boolean bind(Context context, ServiceConnection serviceConnection) {
@@ -68,12 +96,20 @@ public class StepsService extends Service {
 
     // private parts
 
-    boolean started = false;
+    private Deque<String> outputBuffer = new ArrayDeque<String>();
+
+    private State serviceState = State.STOPPED;
+    private State traceState = State.STOPPED;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         connect("wss://whoop.pw/steps/ws");
-        return START_STICKY;
+        client.serviceStateChanged(State.STARTED);
+        return START_REDELIVER_INTENT;
+    }
+
+    private void disconnect() {
+        webSocketClient.close();
     }
 
     private void connect(String addr) {
@@ -86,34 +122,37 @@ public class StepsService extends Service {
             return;
         }
 
-        WebSocketImpl.DEBUG = true;
+        //WebSocketImpl.DEBUG = true;
 
         webSocketClient = new WebSocketClient(uri, new Draft_17()) {
             @Override
             public void onOpen(ServerHandshake serverHandshake) {
-                Log.i("Websocket", "Opened");
                 print("websocket opened");
 
                 // Send sample
 
-                StepsProtos.Sample sample = StepsProtos.Sample.newBuilder()
-                    .setType("acc")
-                    .setTimestamp(System.currentTimeMillis() * 1000000)
-                    .addValue(0.0f)
-                    .addValue(0.0f)
-                    .addValue(9.8f)
-                    .build();
+                /*
+                Sample sample = Sample.newBuilder()
+                        .setName("acc")
+                        .setTimestamp(System.currentTimeMillis() * 1000000)
+                        .setType(Sample.Type.SENSOR_EVENT)
+                        .setSensorEvent(SensorEvent.newBuilder()
+                                        .addValue(0.0f)
+                                        .addValue(0.0f)
+                                        .addValue(9.8f)
+                        )
+                        .build();
 
                 byte[] data = sample.toByteArray();
                 webSocketClient.send(data);
 
                 print("sent sample: " + sample.toString());
                 print("sent data: " + Arrays.toString(data));
+                */
             }
 
             @Override
             public void onMessage(String s) {
-                Log.i("Websocket", "Message " + s);
                 print("received message: " + s);
             }
 
@@ -126,7 +165,6 @@ public class StepsService extends Service {
                     sample = StepsProtos.Sample.parseFrom(data);
                 } catch (InvalidProtocolBufferException ex) {
                     print("unable to parse data");
-                    Log.e("Steps", ex.toString());
                     return;
                 }
                 print("received sample: " + sample.toString());
@@ -134,15 +172,12 @@ public class StepsService extends Service {
 
             @Override
             public void onClose(int i, String s, boolean b) {
-                Log.i("Websocket", "Closed: code: " + i + ", reason: " +
-                        ", remote: " + b);
                 print("websocket closed");
                 webSocketClient = null;
             }
 
             @Override
             public void onError(Exception e) {
-                Log.i("Websocket", "Error " + e.getMessage());
                 print("websocket error: " + e.getMessage());
             }
         };
@@ -151,17 +186,15 @@ public class StepsService extends Service {
         try {
             sslContext = SSLContext.getInstance("TLS");
         } catch (NoSuchAlgorithmException ex) {
-            Log.e("Websocket", "Unrecognized algorithm");
             print("Unrecognized algorithm");
             return;
         }
         try {
+            // for self-signed keys
             //sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(),
             //      null);
             sslContext.init(null, null, null); // default
         } catch (KeyManagementException ex) {
-            Log.e("Websocket", "Error initializing SSL context " +
-                    ex.toString());
             print("Error initializing SSL context");
             return;
         }
@@ -180,11 +213,17 @@ public class StepsService extends Service {
         super.onDestroy();
     }
 
+    private final int MAX_OUTPUT_BUFFER_LINES = 1024;
+
     private void print(String s) {
-        if (logger == null) {
+        if (outputBuffer.size() >= MAX_OUTPUT_BUFFER_LINES) {
+            outputBuffer.pop();
+        }
+        outputBuffer.push(s);
+        if (client == null) {
             return;
         }
-        logger.send(s);
+        client.print(s);
     }
 
     @Override
@@ -192,7 +231,7 @@ public class StepsService extends Service {
         return binder;
     }
 
-    private Logger logger;
+    private Client client;
     private WebSocketClient webSocketClient;
     private final IBinder binder = new StepsBinder();
 

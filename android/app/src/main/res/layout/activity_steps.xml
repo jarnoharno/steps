@@ -5,15 +5,40 @@
     android:padding="@dimen/padding"
     tools:context=".StepsActivity">
 
+    <ToggleButton
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textOn="Service Off"
+        android:textOff="Service On"
+        android:enabled="false"
+        android:onClick="onServiceButtonClicked"
+        android:id="@+id/serviceButton"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"/>
+
+    <ToggleButton
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textOn="Trace Off"
+        android:textOff="Trace On"
+        android:enabled="false"
+        android:id="@+id/traceButton"
+        android:layout_below="@+id/serviceButton"
+        android:layout_alignParentStart="true"/>
+
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/scrollView">
+        android:layout_height="wrap_content"
+        android:id="@+id/scrollView"
+        android:layout_below="@+id/traceButton"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="@dimen/padding"
+        android:layout_alignParentBottom="true">
 
         <TextView
             android:text=""
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:id="@+id/text"/>
     </ScrollView>
 

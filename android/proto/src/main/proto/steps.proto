@@ -3,8 +3,53 @@ package stepsproto;
 option java_package = "com.hiit.steps";
 option java_outer_classname = "StepsProtos";
 
+// sensor events
+
+message SensorEvent {
+    repeated float value = 1;
+}
+
+message Location {
+    required int64 utctime = 1; // milliseconds
+    required double latitude = 2;
+    required double longitude = 3;
+    optional double accuracy = 4;
+    optional double altitude = 5;
+    optional double bearing = 6;
+    optional double speed = 7;
+}
+
 message Sample {
-    required string type = 1;
-    required int64 timestamp = 2;
-    repeated float value = 3;
+    enum Type { SENSOR_EVENT = 1; LOCATION = 2; }
+    required string name = 1;
+    required int64 timestamp = 2; // nanoseconds
+    required Type type = 3;
+    optional SensorEvent sensor_event = 4;
+    optional Location location = 5;
+}
+
+// control messages
+
+message Start {
+    required string name = 1;
+}
+
+message StartAck {
+    required string id = 1;
+}
+
+message Stop {
+    required string id = 1;
+}
+
+message StopAck {
+    required string id = 1;
+}
+
+message Resume {
+    required string id = 1;
+}
+
+message ResumeAck {
+    required string id = 1;
 }

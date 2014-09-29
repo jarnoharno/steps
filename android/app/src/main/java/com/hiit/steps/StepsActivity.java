@@ -5,32 +5,22 @@ import android.content.ComponentName;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
-import android.util.Log;
-
-import java.util.Arrays;
-
-import com.google.protobuf.InvalidProtocolBufferException;
+import android.widget.ToggleButton;
 
 public class StepsActivity extends Activity {
-
-    private void print(String s) {
-        TextView textView = (TextView) findViewById(R.id.text);
-        textView.append(s + '\n');
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_steps);
-
     }
 
     @Override
     protected void onStart() {
         super.onStart();
+        print("Binding service");
         StepsService.bind(this, serviceConnection);
     }
 
@@ -38,35 +28,29 @@ public class StepsActivity extends Activity {
     protected void onStop() {
         // Unbind from the service
         if (stepsService != null) {
-            stepsService.removeLogger(logger);
+            print("Unbinding service");
+            stepsService.removeClient(client);
             unbindService(serviceConnection);
             stepsService = null;
         }
         super.onStop();
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.steps, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
+    public void onServiceButtonClicked(View view) {
+        ToggleButton serviceButton = (ToggleButton) view;
+        serviceButton.setEnabled(false);
+        if (serviceButton.isChecked()) {
+            serviceButton.setChecked(true);
+            stepsService.start(this);
+        } else {
+            serviceButton.setChecked(true);
+            stepsService.stop(this);
         }
-        return super.onOptionsItemSelected(item);
+    }
+
+    private void print(String s) {
+        TextView textView = (TextView) findViewById(R.id.text);
+        textView.append(s + '\n');
     }
 
     private StepsService stepsService;
@@ -77,29 +61,53 @@ public class StepsActivity extends Activity {
             StepsService.StepsBinder stepsBinder =
                 (StepsService.StepsBinder) service;
             stepsService = stepsBinder.getService();
-            stepsService.addLogger(logger);
-            if (!stepsService.started) {
-                stepsService.start(StepsActivity.this);
+            ToggleButton serviceButton = (ToggleButton) findViewById(R.id.serviceButton);
+            serviceButton.setEnabled(true);
+            stepsService.addClient(client);
+            print("Service bound");
+            for (String s: stepsService.getOutputBuffer()) {
+                print(s);
             }
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
             stepsService = null;
+            ToggleButton serviceButton = (ToggleButton) findViewById(R.id.serviceButton);
+            serviceButton.setChecked(false);
+            serviceButton.setEnabled(false);
+            print("Service unbound");
         }
     };
 
-    private StepsService.Logger logger = new StepsService.Logger() {
+    private StepsService.Client client = new StepsService.Client() {
         @Override
-        public void send(final String msg) {
+        public void print(final String msg) {
             StepsActivity.this.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    TextView textView = (TextView) findViewById(R.id.text);
-                    textView.append(msg);
-                    textView.append("\n");
+                    StepsActivity.this.print(msg);
                 }
             });
+        }
+
+        @Override
+        public void serviceStateChanged(StepsService.State state) {
+            ToggleButton serviceButton = (ToggleButton) findViewById(R.id.serviceButton);
+            ToggleButton traceButton = (ToggleButton) findViewById(R.id.traceButton);
+            switch (state) {
+                case STARTED:
+                    serviceButton.setChecked(true);
+                    serviceButton.setEnabled(true);
+                    break;
+                case STOPPED:
+                    serviceButton.setChecked(false);
+                    serviceButton.setEnabled(true);
+                    break;
+                default:
+                    serviceButton.setEnabled(false);
+                    break;
+            }
         }
     };
 }
