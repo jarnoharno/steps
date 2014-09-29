@@ -116,27 +116,8 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	sample := &stepsproto.Sample {
-		Type: proto.String("acc"),
-		Timestamp: proto.Int64(time.Now().UnixNano()),
-		Value: []float32{0.0, 0.0, 9.8},
-	}
-	data, err := proto.Marshal(sample)
-	if err != nil {
-		log.Fatal("marshaling error:", err)
-	}
-
-	newSample := &stepsproto.Sample{}
-	err = proto.Unmarshal(data, newSample)
-	if err != nil {
-		log.Fatal("unmarshaling error:", err)
-	}
-	log.Println("data:", len(data), "bytes", data)
-	log.Println("sample:", sample)
-	log.Println("newSample:", newSample)
-
 	http.HandleFunc("/", Handle)
-    err = http.ListenAndServe("localhost:" + port, nil)
+	err := http.ListenAndServe("localhost:" + port, nil)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}
