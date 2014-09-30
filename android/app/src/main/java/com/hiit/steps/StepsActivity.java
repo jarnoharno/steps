@@ -84,11 +84,17 @@ public class StepsActivity extends Activity {
                 (StepsService.StepsBinder) service;
             stepsService = stepsBinder.getService();
             ToggleButton serviceButton = (ToggleButton) findViewById(R.id.serviceButton);
+            ToggleButton traceButton = (ToggleButton) findViewById(R.id.traceButton);
             serviceButton.setEnabled(true);
             stepsService.addClient(client);
             printActivity("Service bound");
             for (String s: stepsService.getOutputBuffer()) {
                 print(s);
+            }
+            if (stepsService.getServiceState().hasStarted()) {
+                serviceButton.setChecked(true);
+                traceButton.setEnabled(true);
+                traceButton.setChecked(stepsService.getTraceState().hasStarted());
             }
         }
 

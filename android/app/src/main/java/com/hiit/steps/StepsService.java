@@ -85,9 +85,11 @@ public class StepsService extends Service {
 
     public void startTrace() {
         trace.start();
+        traceStateChanged(State.STARTED);
     }
 
     public void stopTrace() {
+        traceStateChanged(State.STOPPED);
         trace.stop();
     }
 
@@ -110,6 +112,13 @@ public class StepsService extends Service {
         serviceState = state;
         if (client != null) {
             client.serviceStateChanged(state);
+        }
+    }
+
+    void traceStateChanged(State state) {
+        traceState = state;
+        if (client != null) {
+            client.traceStateChanged(state);
         }
     }
     

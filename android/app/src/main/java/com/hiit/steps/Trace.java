@@ -43,6 +43,7 @@ public class Trace {
 
     void stop() {
         enabled = false;
+        timestampCorrection = 0;
         Context context = samplerClient.getContext();
         LocationManager locationManager = (LocationManager)
                 context.getSystemService(Context.LOCATION_SERVICE);
@@ -53,9 +54,10 @@ public class Trace {
     }
 
     // private
+    private long timestampCorrection = 0;
     private boolean enabled = false;
 
-    private static int SAMPLE_RATE_US = 100000;
+    private static int SAMPLE_RATE_US = 10000;
 
     private static int[] sensorTypes = {
             Sensor.TYPE_ACCELEROMETER,
@@ -75,6 +77,12 @@ public class Trace {
         @Override
         public void onSensorChanged(SensorEvent event) {
             if (enabled) {
+                if (timestampCorrection == 0) {
+                    timestampCorrection =
+                            System.currentTimeMillis() * 1000000 -
+                            event.timestamp;
+                }
+                event.timestamp += timestampCorrection;
                 samplerClient.SensorEventReceived(event);
             }
         }
@@ -90,6 +98,14 @@ public class Trace {
         @Override
         public void onLocationChanged(Location location) {
             if (enabled) {
+                if (timestampCorrection == 0) {
+                    timestampCorrection =
+                            System.currentTimeMillis() * 1000000 -
+                            location.getElapsedRealtimeNanos();
+                }
+                location.setElapsedRealtimeNanos(
+                        location.getElapsedRealtimeNanos() + timestampCorrection
+                );
                 samplerClient.LocationReceived(location);
             }
         }
