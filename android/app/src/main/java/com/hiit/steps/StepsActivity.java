@@ -5,9 +5,15 @@ import android.content.ComponentName;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.ToggleButton;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
 
 public class StepsActivity extends Activity {
 
@@ -20,7 +26,7 @@ public class StepsActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        print("Binding service");
+        printActivity("Binding service");
         StepsService.bind(this, serviceConnection);
     }
 
@@ -28,7 +34,7 @@ public class StepsActivity extends Activity {
     protected void onStop() {
         // Unbind from the service
         if (stepsService != null) {
-            print("Unbinding service");
+            printActivity("Unbinding service");
             stepsService.removeClient(client);
             unbindService(serviceConnection);
             stepsService = null;
@@ -41,16 +47,36 @@ public class StepsActivity extends Activity {
         serviceButton.setEnabled(false);
         if (serviceButton.isChecked()) {
             serviceButton.setChecked(true);
-            stepsService.start(this);
+            stepsService.startService();
         } else {
             serviceButton.setChecked(true);
-            stepsService.stop(this);
+            stepsService.stopService();
+        }
+    }
+
+    public void onTraceButtonClicked(View view) {
+        ToggleButton traceButton = (ToggleButton) view;
+        traceButton.setEnabled(false);
+        if (traceButton.isChecked()) {
+            traceButton.setChecked(true);
+            stepsService.startTrace();
+        } else {
+            traceButton.setChecked(true);
+            stepsService.stopTrace();
         }
     }
 
     private void print(String s) {
         TextView textView = (TextView) findViewById(R.id.text);
         textView.append(s + '\n');
+    }
+
+    private DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+
+    private void printActivity(String s) {
+        Log.i("Steps", s);
+        String line = "[" + dateFormat.format(new Date()) + "] Activity: " + s;
+        print(line);
     }
 
     private StepsService stepsService;
@@ -64,7 +90,7 @@ public class StepsActivity extends Activity {
             ToggleButton serviceButton = (ToggleButton) findViewById(R.id.serviceButton);
             serviceButton.setEnabled(true);
             stepsService.addClient(client);
-            print("Service bound");
+            printActivity("Service bound");
             for (String s: stepsService.getOutputBuffer()) {
                 print(s);
             }
@@ -76,7 +102,7 @@ public class StepsActivity extends Activity {
             ToggleButton serviceButton = (ToggleButton) findViewById(R.id.serviceButton);
             serviceButton.setChecked(false);
             serviceButton.setEnabled(false);
-            print("Service unbound");
+            printActivity("Service unbound");
         }
     };
 
@@ -99,15 +125,29 @@ public class StepsActivity extends Activity {
                 case STARTED:
                     serviceButton.setChecked(true);
                     serviceButton.setEnabled(true);
+                    traceButton.setChecked(false);
+                    traceButton.setEnabled(true);
                     break;
                 case STOPPED:
                     serviceButton.setChecked(false);
                     serviceButton.setEnabled(true);
+                    traceButton.setChecked(false);
+                    traceButton.setEnabled(false);
                     break;
                 default:
                     serviceButton.setEnabled(false);
+                    traceButton.setChecked(false);
+                    traceButton.setEnabled(false);
                     break;
             }
+        }
+
+        @Override
+        public void connectionStateChanged(StepsService.State state) {
+        }
+
+        @Override
+        public void traceStateChanged(StepsService.State state) {
         }
     };
 }
