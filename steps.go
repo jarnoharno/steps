@@ -44,6 +44,7 @@ func WriteLoop(ws *websocket.Conn, sampleOut <-chan *stepsproto.Sample,
     for {
         select {
 		case <-quit:
+			log.Println("close connection")
 			return
         case instant := <-ticker.C:
             log.Println("PING")
