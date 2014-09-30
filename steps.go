@@ -35,18 +35,16 @@ var upgrader = websocket.Upgrader{
     },
 }
 
-type Packet struct {
-    Msg string
-}
-
-func Write(ws *websocket.Conn, c chan *stepsproto.Sample) {
+func WriteLoop(ws *websocket.Conn, sampleOut <-chan *stepsproto.Sample,
+		quit <-chan struct{}) {
     ticker := time.NewTicker(pingPeriod)
     defer func() {
         ticker.Stop()
-        ws.Close()
     }()
     for {
         select {
+		case <-quit:
+			return
         case instant := <-ticker.C:
             log.Println("PING")
             ws.SetWriteDeadline(instant.Add(writeWait))
@@ -55,10 +53,11 @@ func Write(ws *websocket.Conn, c chan *stepsproto.Sample) {
                 log.Println(err)
                 return
             }
-        case sample := <-c:
+        case sample := <-sampleOut:
             data, err := proto.Marshal(sample)
             if err != nil {
                 log.Println(err)
+				continue
             }
             ws.SetWriteDeadline(time.Now().Add(writeWait))
             err = ws.WriteMessage(websocket.BinaryMessage, data)
@@ -70,22 +69,11 @@ func Write(ws *websocket.Conn, c chan *stepsproto.Sample) {
     }
 }
 
-func Handle(w http.ResponseWriter, r *http.Request) {
-    if r.Method != "GET" {
-        http.Error(w, "Method not allowed", 405)
-        return
-    }
-    ws, err := upgrader.Upgrade(w, r, nil)
-    if err != nil {
-        log.Println(err)
-        return
-    }
-    log.Println("new connection")
+func ReadLoop(ws *websocket.Conn, sampleIn chan<- *stepsproto.Sample,
+		quit chan<- struct{}) {
     defer func() {
         ws.Close()
     }()
-    c := make(chan *stepsproto.Sample)
-    go Write(ws, c)
     ws.SetReadLimit(maxMessageSize)
     ws.SetReadDeadline(time.Now().Add(pongWait))
     ws.SetPongHandler(func(string) error {
@@ -97,6 +85,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
         mt, data, err := ws.ReadMessage()
         if err != nil {
             log.Println(err)
+			quit <- struct{}{}
             return
         }
         if mt == websocket.TextMessage {
@@ -111,8 +100,26 @@ func Handle(w http.ResponseWriter, r *http.Request) {
             continue
         }
         log.Println("sample:", sample)
-        c <- sample
+        sampleIn <- sample
     }
+}
+
+func Handle(w http.ResponseWriter, r *http.Request) {
+    if r.Method != "GET" {
+        http.Error(w, "Method not allowed", 405)
+        return
+    }
+    ws, err := upgrader.Upgrade(w, r, nil)
+    if err != nil {
+        log.Println(err)
+        return
+    }
+    log.Println("new connection")
+    sample := make(chan *stepsproto.Sample)
+	quit := make(chan struct{})
+    go WriteLoop(ws, sample, quit)
+	go ReadLoop(ws, sample, quit)
+
 }
 
 func main() {
