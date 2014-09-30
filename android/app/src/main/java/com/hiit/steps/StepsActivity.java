@@ -13,7 +13,6 @@ import android.widget.ToggleButton;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.TimeZone;
 
 public class StepsActivity extends Activity {
 
@@ -56,12 +55,9 @@ public class StepsActivity extends Activity {
 
     public void onTraceButtonClicked(View view) {
         ToggleButton traceButton = (ToggleButton) view;
-        traceButton.setEnabled(false);
         if (traceButton.isChecked()) {
-            traceButton.setChecked(true);
             stepsService.startTrace();
         } else {
-            traceButton.setChecked(true);
             stepsService.stopTrace();
         }
     }
@@ -143,11 +139,13 @@ public class StepsActivity extends Activity {
         }
 
         @Override
-        public void connectionStateChanged(StepsService.State state) {
-        }
-
-        @Override
         public void traceStateChanged(StepsService.State state) {
+            ToggleButton traceButton = (ToggleButton) findViewById(R.id.traceButton);
+            if (state.hasStarted()) {
+                traceButton.setChecked(true);
+            } else {
+                traceButton.setChecked(false);
+            }
         }
     };
 }

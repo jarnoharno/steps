@@ -16,6 +16,8 @@ import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.AsyncHttpClient.WebSocketConnectCallback;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.concurrent.Future;
 
 public class Connection {
@@ -48,6 +50,17 @@ public class Connection {
         }
         handler.removeCallbacks(retryConnectRunnable);
         enableConnectivityReceiver(false);
+    }
+
+    public void send(byte[] data) {
+        if (webSocket == null) {
+            if (buffer.size() >= MAX_QUEUE_SIZE) {
+                buffer.pop();
+            }
+            buffer.push(data);
+        } else {
+            webSocket.send(data);
+        }
     }
 
     // private
@@ -154,8 +167,21 @@ public class Connection {
                     byteBufferList.recycle();
                 }
             });
+
+            // send full buffer
+            sendAll();
         }
     };
+
+    // 1e5 samples ~ 5.5 min ~ 2MB (300 samples/s, 20B/sample)
+    private static int MAX_QUEUE_SIZE = 100000;
+    private Deque<byte[]> buffer = new ArrayDeque<byte[]>();
+
+    private void sendAll() {
+        for (byte[] data : buffer) {
+            webSocket.send(data);
+        }
+    }
 
     private void enableConnectivityReceiver(boolean enabled) {
         if (enabled && !connectivityReceiverRegistered) {

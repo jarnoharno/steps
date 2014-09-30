@@ -101,7 +101,7 @@ func ReadLoop(ws *websocket.Conn, sampleIn chan<- *stepsproto.Sample,
             continue
         }
         log.Println("sample:", sample)
-        sampleIn <- sample
+        //sampleIn <- sample
     }
 }
 

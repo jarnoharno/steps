@@ -1,38 +1,28 @@
 package com.hiit.steps;
 
 import com.hiit.steps.Connection.ConnectionClient;
+import com.hiit.steps.Trace.SamplerClient;
+import com.hiit.steps.StepsProtos.Sample;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Deque;
-import java.util.TimeZone;
-import java.util.concurrent.Future;
 
 import android.app.Service;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
-
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.DataCallback;
-import com.koushikdutta.async.http.AsyncHttpClient;
-import com.koushikdutta.async.http.AsyncHttpClient.WebSocketConnectCallback;
-import com.koushikdutta.async.http.WebSocket;
-import com.koushikdutta.async.http.WebSocket.StringCallback;
 
 public class StepsService extends Service {
 
@@ -56,7 +46,6 @@ public class StepsService extends Service {
     public static interface Client {
         public void print(String msg);
         public void serviceStateChanged(State state);
-        public void connectionStateChanged(State state);
         public void traceStateChanged(State state);
     }
 
@@ -95,9 +84,11 @@ public class StepsService extends Service {
     }
 
     public void startTrace() {
+        trace.start();
     }
 
     public void stopTrace() {
+        trace.stop();
     }
 
     public static boolean bind(Context context, ServiceConnection serviceConnection) {
@@ -182,6 +173,68 @@ public class StepsService extends Service {
         @Override
         public Context getContext() {
             return StepsService.this;
+        }
+    });
+
+    private Trace trace = new Trace(new SamplerClient() {
+        @Override
+        public void SensorEventReceived(SensorEvent sensorEvent) {
+            Sample.Builder sample = Sample.newBuilder()
+                    .setType(Sample.Type.SENSOR_EVENT)
+                    .setTimestamp(sensorEvent.timestamp);
+            switch (sensorEvent.sensor.getType()) {
+                case Sensor.TYPE_ACCELEROMETER:
+                    sample.setName("acc");
+                    break;
+                case Sensor.TYPE_MAGNETIC_FIELD:
+                    sample.setName("mag");
+                    break;
+                case Sensor.TYPE_GYROSCOPE:
+                    sample.setName("gyr");
+                    break;
+                default:
+                    sample.setName("unk");
+                    break;
+            }
+            StepsProtos.SensorEvent.Builder builder =
+                    StepsProtos.SensorEvent.newBuilder();
+            for (float value: sensorEvent.values) {
+                builder.addValue(value);
+            }
+            sample.setSensorEvent(builder);
+            connection.send(sample.build().toByteArray());
+        }
+
+        @Override
+        public void LocationReceived(Location location) {
+            Sample sample = Sample.newBuilder()
+                    .setType(Sample.Type.SENSOR_EVENT)
+                    .setTimestamp(location.getElapsedRealtimeNanos())
+                    .setName(location.getProvider() ==
+                            LocationManager.GPS_PROVIDER ?
+                            "gps" :
+                            "net")
+                    .setLocation(StepsProtos.Location.newBuilder()
+                            .setUtctime(location.getTime())
+                            .setLatitude(location.getLatitude())
+                            .setLongitude(location.getLongitude())
+                            .setAccuracy(location.getAccuracy())
+                            .setAltitude(location.getAltitude())
+                            .setBearing(location.getBearing())
+                            .setSpeed(location.getSpeed())
+                    )
+                    .build();
+            connection.send(sample.toByteArray());
+        }
+
+        @Override
+        public Context getContext() {
+            return StepsService.this;
+        }
+
+        @Override
+        public void print(String s) {
+            StepsService.this.print(s);
         }
     });
 
