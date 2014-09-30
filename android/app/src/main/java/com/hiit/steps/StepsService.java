@@ -2,36 +2,29 @@ package com.hiit.steps;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Deque;
-import java.util.List;
-
-import javax.net.ssl.SSLContext;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
-import android.util.Log;
 
-import org.java_websocket.WebSocket;
-import org.java_websocket.WebSocketImpl;
-import org.java_websocket.client.WebSocketClient;
-import org.java_websocket.drafts.Draft_17;
-import org.java_websocket.handshake.ServerHandshake;
-import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
-
-import com.google.protobuf.InvalidProtocolBufferException;
-
-import com.hiit.steps.StepsProtos.Sample;
-import com.hiit.steps.StepsProtos.SensorEvent;
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.AsyncHttpClient.WebSocketConnectCallback;
+import com.koushikdutta.async.http.WebSocket;
+import com.koushikdutta.async.http.WebSocket.StringCallback;
 
 public class StepsService extends Service {
 
@@ -39,8 +32,18 @@ public class StepsService extends Service {
         STARTING,
         STARTED,
         STOPPING,
-        STOPPED
+        STOPPED;
+
+        public boolean hasStarted() {
+            return this == STARTING || this == STARTED;
+        }
+
+        public boolean hasStopped() {
+            return this == STOPPING || this == STOPPED;
+        }
     }
+
+    public static int RETRY_DELAY_MILLIS = 5000; // 5 s
 
     // public interface
 
@@ -71,16 +74,17 @@ public class StepsService extends Service {
 
     public void start(Context context) {
         Intent intent = new Intent(context, StepsService.class);
-        client.serviceStateChanged(State.STARTING);
+        serviceStateChanged(State.STARTING);
         context.startService(intent);
     }
 
     public void stop(Context context) {
         Intent intent = new Intent(context, StepsService.class);
-        client.serviceStateChanged(State.STOPPING);
+        serviceStateChanged(State.STOPPING);
         context.stopService(intent);
         disconnect();
-        client.serviceStateChanged(State.STOPPED);
+        handler.removeCallbacks(retryConnectRunnable);
+        serviceStateChanged(State.STOPPED);
     }
 
     public static boolean bind(Context context, ServiceConnection serviceConnection) {
@@ -98,118 +102,149 @@ public class StepsService extends Service {
 
     private Deque<String> outputBuffer = new ArrayDeque<String>();
 
+    void serviceStateChanged(State state) {
+        serviceState = state;
+        if (client != null) {
+            client.serviceStateChanged(state);
+        }
+    }
+
+    void connectionStateChanged(State state) {
+        connectionState = state;
+    }
+    
     private State serviceState = State.STOPPED;
+    private State connectionState = State.STOPPED;
     private State traceState = State.STOPPED;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        connect("wss://whoop.pw/steps/ws");
-        client.serviceStateChanged(State.STARTED);
+        serviceStateChanged(State.STARTED);
+        tryConnect();
         return START_REDELIVER_INTENT;
     }
 
     private void disconnect() {
-        webSocketClient.close();
+        if (connectionState.hasStarted()) {
+            connectionState = State.STOPPING;
+            if (webSocket != null) {
+                webSocket.close();
+                // throw client away in any case if initiating close
+                webSocket = null;
+            }
+        }
     }
 
-    private void connect(String addr) {
-        URI uri;
-        try {
-            uri = new URI(addr);
-        } catch (URISyntaxException e) {
-            print(e.toString());
-            e.printStackTrace();
-            return;
+    private void tryConnect() {
+        if (!hasConnectivity()) {
+            // set connectivity receiver to try connect when network becomes
+            // available
+            enableConnectivityReceiver(true);
+        } else {
+            connect();
         }
+    }
 
-        //WebSocketImpl.DEBUG = true;
+    private void retryConnect() {
+        retryConnect(0);
+    }
 
-        webSocketClient = new WebSocketClient(uri, new Draft_17()) {
-            @Override
-            public void onOpen(ServerHandshake serverHandshake) {
-                print("websocket opened");
+    private void retryConnect(int delayMillis) {
+        handler.postDelayed(retryConnectRunnable, delayMillis);
+    }
 
-                // Send sample
+    private Runnable retryConnectRunnable = new Runnable() {
 
-                /*
-                Sample sample = Sample.newBuilder()
-                        .setName("acc")
-                        .setTimestamp(System.currentTimeMillis() * 1000000)
-                        .setType(Sample.Type.SENSOR_EVENT)
-                        .setSensorEvent(SensorEvent.newBuilder()
-                                        .addValue(0.0f)
-                                        .addValue(0.0f)
-                                        .addValue(9.8f)
-                        )
-                        .build();
-
-                byte[] data = sample.toByteArray();
-                webSocketClient.send(data);
-
-                print("sent sample: " + sample.toString());
-                print("sent data: " + Arrays.toString(data));
-                */
+        @Override
+        public void run() {
+            if (serviceState.hasStarted()) {
+                tryConnect();
             }
+        }
+    };
 
-            @Override
-            public void onMessage(String s) {
-                print("received message: " + s);
-            }
+    private void connect() {
+        enableConnectivityReceiver(false);
 
+        print("Opening websocket");
+        AsyncHttpClient.getDefaultInstance()
+                .websocket("wss://whoop.pw/steps/ws", null,
+                        new WebSocketConnectCallback() {
             @Override
-            public void onMessage(ByteBuffer buffer) {
-                byte[] data = buffer.array();
-                print("received data: " + Arrays.toString(data));
-                StepsProtos.Sample sample;
-                try {
-                    sample = StepsProtos.Sample.parseFrom(data);
-                } catch (InvalidProtocolBufferException ex) {
-                    print("unable to parse data");
+            public void onCompleted(Exception ex, WebSocket webSocket) {
+                if (ex != null) {
+                    print(ex.toString());
+                    retryConnect(RETRY_DELAY_MILLIS);
                     return;
                 }
-                print("received sample: " + sample.toString());
-            }
+                if (webSocket == null) {
+                    print("Failed to open websocket");
+                    retryConnect(RETRY_DELAY_MILLIS);
+                    return;
+                }
+                connectionStateChanged(State.STARTED);
+                print("Websocket opened");
 
-            @Override
-            public void onClose(int i, String s, boolean b) {
-                print("websocket closed");
-                webSocketClient = null;
-            }
+                StepsService.this.webSocket = webSocket;
 
-            @Override
-            public void onError(Exception e) {
-                print("websocket error: " + e.getMessage());
+                webSocket.setClosedCallback(new CompletedCallback() {
+                    @Override
+                    public void onCompleted(Exception ex) {
+                        connectionStateChanged(State.STOPPED);
+                        print("Websocket closed");
+                        retryConnect(RETRY_DELAY_MILLIS);
+                    }
+                });
+                webSocket.setStringCallback(new StringCallback() {
+                    public void onStringAvailable(String s) {
+                        System.out.println("I got a string: " + s);
+                    }
+                });
+                webSocket.setDataCallback(new DataCallback() {
+                    public void onDataAvailable(DataEmitter emitter,
+                                                ByteBufferList byteBufferList) {
+                        System.out.println("I got some bytes!");
+                        // note that this data has been read
+                        byteBufferList.recycle();
+                    }
+                });
             }
-        };
-        print("opening websocket");
-        SSLContext sslContext = null;
-        try {
-            sslContext = SSLContext.getInstance("TLS");
-        } catch (NoSuchAlgorithmException ex) {
-            print("Unrecognized algorithm");
-            return;
+        });
+    }
+
+    private boolean hasConnectivity() {
+        ConnectivityManager connectivityManager = (ConnectivityManager)
+                getSystemService(CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetwork = connectivityManager.getActiveNetworkInfo();
+        return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        enableConnectivityReceiver(false);
+    }
+
+    private void enableConnectivityReceiver(boolean enabled) {
+        if (enabled && !connectivityReceiverRegistered) {
+            IntentFilter intentFilter = new IntentFilter();
+            intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+            registerReceiver(connectivityReceiver, intentFilter);
+            connectivityReceiverRegistered = true;
+            print("Registered connectivity receiver");
+        } else if (!enabled && connectivityReceiverRegistered) {
+            unregisterReceiver(connectivityReceiver);
+            connectivityReceiverRegistered = false;
+            print("Unregistered connectivity receiver");
         }
-        try {
-            // for self-signed keys
-            //sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(),
-            //      null);
-            sslContext.init(null, null, null); // default
-        } catch (KeyManagementException ex) {
-            print("Error initializing SSL context");
-            return;
-        }
-        webSocketClient.setWebSocketFactory(
-                new DefaultSSLWebSocketClientFactory(sslContext));
-        webSocketClient.connect();
     }
 
     @Override
     public void onDestroy() {
-        if (webSocketClient != null &&
-                webSocketClient.getReadyState() != WebSocket.READYSTATE.CLOSING &&
-                webSocketClient.getReadyState() != WebSocket.READYSTATE.CLOSED) {
-            webSocketClient.close();
+        if (webSocket != null && webSocket.isOpen()) {
+            webSocket.close();
         }
+        enableConnectivityReceiver(false);
         super.onDestroy();
     }
 
@@ -231,8 +266,16 @@ public class StepsService extends Service {
         return binder;
     }
 
+    private Handler handler = new Handler();
     private Client client;
-    private WebSocketClient webSocketClient;
+    private WebSocket webSocket;
     private final IBinder binder = new StepsBinder();
+    private BroadcastReceiver connectivityReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            tryConnect();
+        }
+    };
+    private boolean connectivityReceiverRegistered = false;
 
 }
