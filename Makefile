@@ -6,7 +6,7 @@ PROTO := $(PBSRCDIR)/steps.proto
 $(PBDIR)/%.pb.go: $(PBSRCDIR)/%.proto $(PBDIR)
 	protoc --proto_path=$(PBSRCDIR) --go_out=$(PBDIR) $<
 
-steps: steps.go hub.go conn.go $(PBDIR)/steps.pb.go
+steps: steps.go hub.go conn.go filter.go $(PBDIR)/steps.pb.go
 	go build
 
 $(PBDIR):

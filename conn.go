@@ -1,5 +1,8 @@
 package main
 
+// #cgo LDFLAGS: -lm
+// #include "madgwick.h"
+import "C"
 import (
 	"log"
 	"time"
@@ -22,6 +25,9 @@ type connection struct {
 
 	// channel of outbound samples
 	send chan *stepsproto.Sample
+
+	// current trace
+	trace *Trace
 }
 
 func (c *connection) write(mt int, payload []byte) error {
@@ -100,7 +106,12 @@ func (c *connection) ReadLoop() {
 			log.Println("can't parse data:", err)
 			continue
 		}
-		h.broadcast <- sample
+		// check if control message
+		if sample.GetType() == stepsproto.Sample_CONTROL {
+		}
+
+
+		f.send <- sample
 	}
 }
 
