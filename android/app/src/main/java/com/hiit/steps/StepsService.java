@@ -84,6 +84,7 @@ public class StepsService extends Service {
     }
 
     public void startTrace() {
+        connection.startTrace();
         trace.start();
         traceStateChanged(State.STARTED);
     }
@@ -91,6 +92,7 @@ public class StepsService extends Service {
     public void stopTrace() {
         traceStateChanged(State.STOPPED);
         trace.stop();
+        connection.stopTrace();
     }
 
     public static boolean bind(Context context, ServiceConnection serviceConnection) {
