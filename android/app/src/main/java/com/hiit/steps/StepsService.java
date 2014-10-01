@@ -217,7 +217,7 @@ public class StepsService extends Service {
         @Override
         public void LocationReceived(Location location) {
             Sample sample = Sample.newBuilder()
-                    .setType(Sample.Type.SENSOR_EVENT)
+                    .setType(Sample.Type.LOCATION)
                     .setTimestamp(location.getElapsedRealtimeNanos())
                     .setName(location.getProvider() ==
                             LocationManager.GPS_PROVIDER ?
