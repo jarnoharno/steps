@@ -8,6 +8,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Handler;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.callback.CompletedCallback;
@@ -21,6 +22,8 @@ import java.util.Deque;
 import java.util.concurrent.Future;
 
 public class Connection {
+
+    private static String NAME = "android";
 
     public interface ConnectionClient {
         void print(String s);
@@ -53,6 +56,9 @@ public class Connection {
     }
 
     public void send(byte[] data) {
+        if (!tracing) {
+            return;
+        }
         if (webSocket == null) {
             if (buffer.size() >= MAX_QUEUE_SIZE) {
                 buffer.pop();
@@ -63,7 +69,62 @@ public class Connection {
         }
     }
 
+    public void startTrace() {
+        tracing = true;
+        send(startMessage().toByteArray());
+    }
+
+    public void stopTrace() {
+        if (traceId != null) {
+            send(stopMessage().toByteArray());
+        }
+        tracing = false;
+        traceId = null;
+    }
+
     // private
+
+    private StepsProtos.Sample startMessage() {
+        return StepsProtos.Sample.newBuilder()
+                .setType(StepsProtos.Sample.Type.CONTROL)
+                .setName("ctrl")
+                .setTimestamp(System.currentTimeMillis() * 1000000)
+                .setControl(StepsProtos.Control.newBuilder()
+                                .setType(StepsProtos.Control.Type.START)
+                                .setStart(StepsProtos.Start.newBuilder()
+                                                .setName("android")
+                                )
+                )
+                .build();
+    }
+
+    private StepsProtos.Sample stopMessage() {
+        return StepsProtos.Sample.newBuilder()
+                .setType(StepsProtos.Sample.Type.CONTROL)
+                .setName("ctrl")
+                .setTimestamp(System.currentTimeMillis() * 1000000)
+                .setControl(StepsProtos.Control.newBuilder()
+                                .setType(StepsProtos.Control.Type.STOP)
+                                .setStop(StepsProtos.Stop.newBuilder()
+                                                .setId(traceId)
+                                )
+                )
+                .build();
+    }
+
+    private StepsProtos.Sample resumeMessage() {
+        return StepsProtos.Sample.newBuilder()
+                .setType(StepsProtos.Sample.Type.CONTROL)
+                .setName("ctrl")
+                .setTimestamp(System.currentTimeMillis() * 1000000)
+                .setControl(StepsProtos.Control.newBuilder()
+                                .setType(StepsProtos.Control.Type.RESUME)
+                                .setResume(StepsProtos.Resume.newBuilder()
+                                                .setId(traceId)
+                                )
+                )
+                .build();
+    }
 
     private static final int RETRY_DELAY_MILLIS = 5000;
 
@@ -116,6 +177,9 @@ public class Connection {
     private WebSocket webSocket;
     private boolean enabled;
 
+    private boolean tracing;
+    private String traceId;
+
     private void connectNow() {
         enableConnectivityReceiver(false);
         webSocketFuture = AsyncHttpClient.getDefaultInstance()
@@ -152,6 +216,15 @@ public class Connection {
                     print("Websocket closed");
                     retryConnect();
                     Connection.this.webSocket = null;
+                    if (!tracing) {
+                        return;
+                    }
+                    // put a resume or start message in front of the queue
+                    if (traceId == null) {
+                        buffer.addFirst(startMessage().toByteArray());
+                    } else {
+                        buffer.addFirst(resumeMessage().toByteArray());
+                    }
                 }
             });
             webSocket.setStringCallback(new WebSocket.StringCallback() {
@@ -162,9 +235,17 @@ public class Connection {
             webSocket.setDataCallback(new DataCallback() {
                 public void onDataAvailable(DataEmitter emitter,
                                             ByteBufferList byteBufferList) {
-                    System.out.println("I got some bytes!");
-                    // note that this data has been read
-                    byteBufferList.recycle();
+                    byte[] data = byteBufferList.getAllByteArray();
+                    try {
+                        StepsProtos.Sample sample = StepsProtos.Sample
+                                .parseFrom(data);
+                        traceId = sample.getControl().getStartAck().getId();
+                        print("received id: " + traceId);
+                    } catch (InvalidProtocolBufferException e) {
+                        print(e.toString());
+                    } finally {
+                        byteBufferList.recycle();
+                    }
                 }
             });
 
@@ -181,6 +262,7 @@ public class Connection {
         for (byte[] data : buffer) {
             webSocket.send(data);
         }
+        buffer.clear();
     }
 
     private void enableConnectivityReceiver(boolean enabled) {

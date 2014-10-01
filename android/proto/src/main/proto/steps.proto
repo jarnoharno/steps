@@ -20,12 +20,13 @@ message Location {
 }
 
 message Sample {
-    enum Type { SENSOR_EVENT = 1; LOCATION = 2; }
+    enum Type { SENSOR_EVENT = 1; LOCATION = 2; CONTROL = 3; }
     required string name = 1;
     required int64 timestamp = 2; // nanoseconds
     required Type type = 3;
     optional SensorEvent sensor_event = 4;
     optional Location location = 5;
+    optional Control control = 6;
 }
 
 // control messages
@@ -42,14 +43,20 @@ message Stop {
     required string id = 1;
 }
 
-message StopAck {
-    required string id = 1;
-}
-
 message Resume {
     required string id = 1;
 }
 
-message ResumeAck {
-    required string id = 1;
+message Control {
+    enum Type {
+        START = 1;
+        START_ACK = 2;
+        STOP = 3;
+        RESUME = 4;
+    }
+    required Type type = 1;
+    optional Start start = 2;
+    optional StartAck start_ack = 3;
+    optional Stop stop = 4;
+    optional Resume resume = 5;
 }

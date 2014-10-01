@@ -57,12 +57,13 @@ public class Trace {
     private long timestampCorrection = 0;
     private boolean enabled = false;
 
-    private static int SAMPLE_RATE_US = 10000;
+    // sampling rate can only be set between 10-25 milliseconds
+    private static int SAMPLE_RATE_US = 25000;
 
     private static int[] sensorTypes = {
             Sensor.TYPE_ACCELEROMETER,
             Sensor.TYPE_GYROSCOPE,
-            Sensor.TYPE_MAGNETIC_FIELD
+            Sensor.TYPE_MAGNETIC_FIELD,
     };
 
     private static String[] locationProviders = {
