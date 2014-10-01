@@ -2,52 +2,12 @@ package main
 
 import (
 	"log"
-	"time"
 	"./stepsproto"
 	"code.google.com/p/goprotobuf/proto"
 )
 
-type Trace struct {
-	send chan *stepsproto.Sample
-	done chan struct{}
-}
-
-var traces = make(map[string]*Trace)
-
-const (
-	traceTimeout = 5 * time.Minute
-)
-
-func (Trace *t) run() {
-	ticker := time.NewTicker(traceTimeout)
-	defer func() {
-		ticker.Stop()
-		close(t.done)
-	}
-	for {
-		select {
-		case <-ticker.C:
-			// trace expired
-			return
-		case sample, ok := <-t.send:
-			if !ok {
-				return
-			}
-			ticker.Stop()
-			filter(sample)
-			ticker = time.NewTicker(traceTimeout)
-		}
-	}
-}
-
-func filter(sample *stepsproto.Sample) {
-	h.broadcast <- sample
-}
-
-// filters
-
 // 10 ms
-const resampleTime = 10000000
+const resampleTime = 25000000
 
 // sample types to be multiplexed
 var types = [...]string{"acc", "gyr", "mag"}
@@ -65,9 +25,6 @@ type MuxSample struct {
 	next *MuxSample
 }
 
-// first element in mux queue
-var first = &MuxSample{}
-
 // resample range
 type Range struct {
 	timestamp int64
@@ -75,17 +32,30 @@ type Range struct {
 	next *stepsproto.Sample
 }
 
-// value ranges
-var ranges = map[string]*Range{}
+type Filter struct {
 
-func init() {
-	for i := range types {
-		ranges[types[i]] = &Range{}
-	}
+	// first element in mux queue
+	first *MuxSample
+
+	// interpolation ranges
+	ranges map[string]*Range
+
+	// first interpolation instant defined
+	started bool
 }
 
-func prevDefined() bool {
-	for _, r := range ranges {
+func NewFilter() *Filter {
+	filter := &Filter{
+		ranges: make(map[string]*Range),
+	}
+	for i := range types {
+		filter.ranges[types[i]] = &Range{}
+	}
+	return filter
+}
+
+func (f *Filter) prevDefined() bool {
+	for _, r := range f.ranges {
 		if r.prev == nil {
 			return false
 		}
@@ -93,30 +63,25 @@ func prevDefined() bool {
 	return true
 }
 
-var started = false
-var lastTimestamp = int64(0)
+func (f *Filter) Send(sample *stepsproto.Sample) {
+	h.broadcast <- sample
+}
 
-func mux(sample *stepsproto.Sample) {
+// filters
+
+func (f *Filter) mux(sample *stepsproto.Sample) {
 	if sample.GetType() != stepsproto.Sample_SENSOR_EVENT {
 		log.Println(sample.GetType())
 		return
 	}
 	log.Println(sample.GetType(), sample.GetName(), sample.GetTimestamp())
-	if !started {
-		ranges[sample.GetName()].prev = sample
-		if prevDefined() {
+	if !f.started {
+		f.ranges[sample.GetName()].prev = sample
+		if f.prevDefined() {
 			log.Println("got them all!")
-			started = true
+			f.started = true
 			return
 		}
-	}
-
-	if sample.GetName() == "acc" {
-		if lastTimestamp != 0 {
-		log.Println(sample.GetType(), sample.GetName(),
-			(sample.GetTimestamp() - lastTimestamp) / 1000)
-		}
-		lastTimestamp = sample.GetTimestamp()
 	}
 
 	if false {
