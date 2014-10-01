@@ -1,0 +1,6 @@
+{
+  "name": "steps",
+  "dependencies": {
+    "protobufjs": "^3.6.0"
+  }
+}

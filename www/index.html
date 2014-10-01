@@ -3,6 +3,9 @@
   <head>
     <meta charset="utf-8">
     <title>steps</title>
+    <script src="Long.min.js"></script>
+    <script src="ByteBufferAB.min.js"></script>
+    <script src="ProtoBuf.min.js"></script>
   </head>
   <body>
     KEK
@@ -10,17 +13,39 @@
 // meh...
 
 var loc = window.location, new_uri;
-if (loc.protocol === "https:") {
-    new_uri = "wss:";
+if (loc.protocol === 'https:') {
+    new_uri = 'wss:';
 } else {
-    new_uri = "ws:";
+    new_uri = 'ws:';
 }
-new_uri += "//" + loc.host;
-new_uri += loc.pathname + "ws";
+new_uri += '//' + loc.host;
+new_uri += loc.pathname + 'ws';
 
 console.log(new_uri);
 
-var exampleSocket = new WebSocket(new_uri);
+var ws = new WebSocket(new_uri);
+
+var ProtoBuf = dcodeIO.ProtoBuf;
+
+var builder = ProtoBuf.loadJsonFile('steps.json');
+var protos = builder.build("stepsproto");
+var Sample = protos.Sample;
+
+// web socket
+
+
+ws.onmessage = function(ev) {
+  var fileReader = new FileReader();
+  fileReader.onload = function() {
+    var sample = Sample.decode(this.result);
+    console.log(sample);
+  };
+  fileReader.readAsArrayBuffer(ev.data);
+};
+
+ws.onopen = function(ev) {
+  ws.send("listen");
+};
 
 // ...meh
     </script>

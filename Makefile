@@ -1,14 +1,36 @@
 PBSRCDIR := android/proto/src/main/proto
 PBDIR := stepsproto
 
+PROTO := $(PBSRCDIR)/steps.proto
+
 $(PBDIR)/%.pb.go: $(PBSRCDIR)/%.proto $(PBDIR)
 	protoc --proto_path=$(PBSRCDIR) --go_out=$(PBDIR) $<
 
-steps: steps.go $(PBDIR)/steps.pb.go
+steps: steps.go hub.go conn.go $(PBDIR)/steps.pb.go
 	go build
 
 $(PBDIR):
 	mkdir -p $@
+
+# www
+
+node_modules:
+	npm install
+
+www/steps.json: $(PROTO)
+	proto2js $< > $@
+
+www/bundle.js: js/steps.js node_modules
+	browserify $< -o $@
+
+.PHONY: clean-www
+clean-www:
+	rm -rf node_modules
+	rm -f www/steps.json
+	rm -f www/steps.js
+
+.PHONY: www
+www: www/steps.json www/bundle.js
 
 # scripts
 

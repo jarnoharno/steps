@@ -7,3 +7,6 @@ stepsproto
 /steps
 /ublox/ublox
 /ublox/*.log
+/node_modules
+/www/steps.json
+/steps.out
