@@ -58,7 +58,7 @@ public class Write {
                 externalFile = FileSystem.nextAvailableFile(
                         FILE_PREFIX, FILE_SUFFIX, externalFolder);
             } else {
-                externalFile = new File(externalFolder, fileName);
+                externalFile = new File(externalFolder, FILE_PREFIX + fileName);
             }
             try {
                 FileSystem.moveFile(file, externalFile);
