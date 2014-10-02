@@ -25,8 +25,8 @@ type connection struct {
 	// websocket connection
 	ws *websocket.Conn
 
-	// channel of outbound samples
-	send chan *stepsproto.Sample
+	// channel of outbound messages
+	send chan *stepsproto.Message
 
 	// current filter
 	filter *Filter
@@ -153,58 +153,51 @@ func (c *connection) ReadLoop() {
 			}
 
 			// unmarshal sample
-			sample := &stepsproto.Sample{}
-			err := proto.Unmarshal(data, sample)
+			msg := &stepsproto.Message{}
+			err := proto.Unmarshal(data, msg)
 			if err != nil {
 				log.Println("can't parse data:", err)
 				continue
 			}
 
 			// check if control message
-			if sample.GetType() == stepsproto.Sample_CONTROL {
-				ctrl := sample.GetControl()
-				switch ctrl.GetType() {
-				case stepsproto.Control_START:
+			switch msg.GetType() {
+			case stepsproto.Message_START:
 
-					// generate name
-					id := randomString()
+				// generate name
+				id := randomString()
 
-					// get filter
-					c.DiscardFilter(true)
-					c.filter = <-fm.Get(c, id)
+				// get filter
+				c.DiscardFilter(true)
+				c.filter = <-fm.Get(c, id)
 
-					// send ack
-					c.send <- &stepsproto.Sample{
-						Name: proto.String("ctrl"),
-						Timestamp: proto.Int64(time.Now().UnixNano()),
-						Type: stepsproto.Sample_CONTROL.Enum(),
-						Control: &stepsproto.Control{
-							Type: stepsproto.Control_START_ACK.Enum(),
-							StartAck: &stepsproto.StartAck{
-								Id: proto.String(id),
-							},
-						},
-					}
-				case stepsproto.Control_STOP:
-					// ignore trace id
-					c.DiscardFilter(true)
-				case stepsproto.Control_RESUME:
-					id := ctrl.GetResume().GetId()
-					log.Println("resume trace", id)
-
-					// ignore if we already have the correct trace
-					if c.filter != nil && c.filter.name == id {
-						continue
-					}
-
-					// get filter
-					c.DiscardFilter(true)
-					c.filter = <-fm.Get(c, id)
+				// send ack
+				c.send <- &stepsproto.Message{
+					Type: stepsproto.Message_START_ACK.Enum(),
+					Timestamp: proto.Int64(time.Now().UnixNano()),
+					Id: proto.String(id),
 				}
-			} else if c.filter != nil {
-				c.filter.Send(sample)
+			case stepsproto.Message_STOP:
+				// ignore trace id
+				c.DiscardFilter(true)
+			case stepsproto.Message_RESUME:
+				id := msg.GetId()
+				log.Println("resume trace", id)
+
+				// ignore if we already have the correct trace
+				if c.filter != nil && c.filter.name == id {
+					continue
+				}
+
+				// get filter
+				c.DiscardFilter(true)
+				c.filter = <-fm.Get(c, id)
+			default:
+				if c.filter != nil {
+					c.filter.Send(msg)
+				}
+				// else trace not started, ignoring samples
 			}
-			// else trace not started, ignoring samples
 		}
 	}
 }
@@ -212,7 +205,7 @@ func (c *connection) ReadLoop() {
 func CreateConnection(ws *websocket.Conn) {
 	c := &connection{
 		ws: ws,
-		send: make(chan *stepsproto.Sample, 256),
+		send: make(chan *stepsproto.Message, 256),
 	}
 	h.register <- c
 	go c.WriteLoop()

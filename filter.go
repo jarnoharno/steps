@@ -7,29 +7,29 @@ import (
 )
 
 // 10 ms
-const resampleTime = 25000000
+const remsgTime = 25000000
 
-// sample types to be multiplexed
+// msg types to be multiplexed
 var types = [...]string{"acc", "gyr", "mag"}
 
-type SampleMap map[string]*stepsproto.Sample
+type MessageMap map[string]*stepsproto.Message
 
-func (s SampleMap) defined() bool {
+func (s MessageMap) defined() bool {
 	return len(s) == len(types)
 }
 
-// resampled and multiplexed collection of samples
-type MuxSample struct {
+// remsgd and multiplexed collection of msgs
+type MuxMessage struct {
 	timestamp int64
-	samples SampleMap
-	next *MuxSample
+	msgs MessageMap
+	next *MuxMessage
 }
 
-// resample range
+// remsg range
 type Range struct {
 	timestamp int64
-	prev *stepsproto.Sample
-	next *stepsproto.Sample
+	prev *stepsproto.Message
+	next *stepsproto.Message
 }
 
 type Filter struct {
@@ -37,7 +37,7 @@ type Filter struct {
 	name string
 
 	// first element in mux queue
-	first *MuxSample
+	first *MuxMessage
 
 	// interpolation ranges
 	ranges map[string]*Range
@@ -67,20 +67,20 @@ func (f *Filter) prevDefined() bool {
 	return true
 }
 
-func (f *Filter) Send(sample *stepsproto.Sample) {
-	h.broadcast <- sample
+func (f *Filter) Send(msg *stepsproto.Message) {
+	h.broadcast <- msg
 }
 
 // filters
 
-func (f *Filter) mux(sample *stepsproto.Sample) {
-	if sample.GetType() != stepsproto.Sample_SENSOR_EVENT {
-		log.Println(sample.GetType())
+func (f *Filter) mux(msg *stepsproto.Message) {
+	if msg.GetType() != stepsproto.Message_SENSOR_EVENT {
+		log.Println(msg.GetType())
 		return
 	}
-	log.Println(sample.GetType(), sample.GetName(), sample.GetTimestamp())
+	log.Println(msg.GetType(), msg.GetId(), msg.GetTimestamp())
 	if !f.started {
-		f.ranges[sample.GetName()].prev = sample
+		f.ranges[msg.GetId()].prev = msg
 		if f.prevDefined() {
 			log.Println("got them all!")
 			f.started = true
@@ -89,11 +89,11 @@ func (f *Filter) mux(sample *stepsproto.Sample) {
 	}
 
 	if false {
-		newSample := &stepsproto.Sample{
-			Name: proto.String("asdf"),
+		newMsg := &stepsproto.Message{
+			Type: stepsproto.Message_SENSOR_EVENT.Enum(),
+			Id: proto.String("asdf"),
 			Timestamp: proto.Int64(123),
-			Type: stepsproto.Sample_SENSOR_EVENT.Enum(),
 		}
-		h.broadcast <- newSample
+		h.broadcast <- newMsg
 	}
 }

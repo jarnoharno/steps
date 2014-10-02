@@ -13,7 +13,7 @@ type hub struct {
 	listeners map[*connection]bool
 
 	// inbound samples
-	broadcast chan *stepsproto.Sample
+	broadcast chan *stepsproto.Message
 
 	// register requests
 	register chan *connection
@@ -28,7 +28,7 @@ type hub struct {
 var h = hub{
 	connections: make(map[*connection]bool),
 	listeners:   make(map[*connection]bool),
-	broadcast:   make(chan *stepsproto.Sample, 256),
+	broadcast:   make(chan *stepsproto.Message, 256),
 	register:    make(chan *connection),
 	unregister:  make(chan *connection),
 	listen:      make(chan *connection),
