@@ -1,5 +1,9 @@
 package main
 
+// #cgo LDFLAGS: -lm
+// #include "madgwick.h"
+import "C"
+
 import (
 	"log"
 	"./stepsproto"
@@ -37,8 +41,8 @@ type Filter struct {
 
 	name string
 
-	// first element in mux queue
-	first *MuxMessage
+	// empty root element in mux queue
+	root *MuxMessage
 
 	// interpolation ranges
 	ranges map[string]*Range
@@ -52,6 +56,7 @@ func NewFilter(name string) *Filter {
 	filter := &Filter{
 		name: name,
 		ranges: make(map[string]*Range),
+		root: &MuxMessage{},
 	}
 	for i := range types {
 		filter.ranges[types[i]] = &Range{}
@@ -68,11 +73,40 @@ func (f *Filter) complete() bool {
 	return true
 }
 
+func (f *Filter) outputMux(msg *MuxMessage) {
+	id := ""
+	values := make([]float32, 0)
+	for _, t := range types {
+		id += t[0:1]
+		values = append(values, msg.values[t]...)
+	}
+	log.Println(id, msg.timestamp, values, "mux")
+}
+
 func (f *Filter) outputInterpolate(
 		id string,
 		timestamp int64,
 		values []float32) {
 	log.Println(id, timestamp, values, "interp")
+
+	prev := f.root
+	for prev.next != nil && prev.next.timestamp < timestamp {
+		prev = prev.next
+	}
+	if prev.next == nil {
+		m := &MuxMessage{
+			timestamp: timestamp,
+			values: ValueMap{},
+		}
+		prev.next = m
+	}
+	prev.next.values[id] = values
+	if !prev.next.values.complete() {
+		return
+	}
+	msg := prev.next
+	prev.next = msg.next
+	f.outputMux(msg)
 }
 
 // entry point
@@ -97,13 +131,6 @@ func (f *Filter) mux(msg *stepsproto.Message) {
 	if !f.started {
 		f.ranges[id].last = msg
 		if f.complete() {
-			// initialize first muxed message
-			f.first = &MuxMessage{
-				timestamp: timestamp,
-				values: ValueMap{},
-			}
-			// add first values
-			f.first.values[id] = vals
 			// set range timestamps
 			for rid, r := range f.ranges {
 				if rid == id {
@@ -112,7 +139,7 @@ func (f *Filter) mux(msg *stepsproto.Message) {
 					r.timestamp = timestamp
 				}
 			}
-			log.Println(id, timestamp, vals, "first")
+			f.outputInterpolate(id, timestamp, vals)
 			f.started = true
 		}
 		return

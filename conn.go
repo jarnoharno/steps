@@ -1,8 +1,5 @@
 package main
 
-// #cgo LDFLAGS: -lm
-// #include "madgwick.h"
-import "C"
 import (
 	"log"
 	"time"
