@@ -1,5 +1,8 @@
 package main
 
+// #cgo LDFLAGS: -lm
+// #include "madgwick.h"
+import "C"
 import (
 	"log"
 	"time"
@@ -22,6 +25,9 @@ type connection struct {
 
 	// channel of outbound samples
 	send chan *stepsproto.Sample
+
+	// current filter
+	filter *Filter
 }
 
 func (c *connection) write(mt int, payload []byte) error {
@@ -100,7 +106,33 @@ func (c *connection) ReadLoop() {
 			log.Println("can't parse data:", err)
 			continue
 		}
-		h.broadcast <- sample
+		// check if control message
+		if sample.GetType() == stepsproto.Sample_CONTROL {
+			ctrl := sample.GetControl()
+			switch ctrl.GetType() {
+			case stepsproto.Control_START:
+				log.Println("trace started")
+				c.filter = NewFilter()
+				c.send <- &stepsproto.Sample{
+					Name: proto.String("ctrl"),
+					Timestamp: proto.Int64(time.Now().UnixNano()),
+					Type: stepsproto.Sample_CONTROL.Enum(),
+					Control: &stepsproto.Control{
+						Type: stepsproto.Control_START_ACK.Enum(),
+						StartAck: &stepsproto.StartAck{
+							Id: proto.String("asdf"),
+						},
+					},
+				}
+			case stepsproto.Control_STOP:
+				log.Println("trace stopped")
+				c.filter = nil
+			case stepsproto.Control_RESUME:
+				log.Println("trace resumed")
+			}
+		} else if c.filter != nil {
+			c.filter.Send(sample)
+		}
 	}
 }
 

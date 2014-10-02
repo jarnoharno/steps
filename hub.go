@@ -28,7 +28,7 @@ type hub struct {
 var h = hub{
 	connections: make(map[*connection]bool),
 	listeners:   make(map[*connection]bool),
-	broadcast:   make(chan *stepsproto.Sample),
+	broadcast:   make(chan *stepsproto.Sample, 256),
 	register:    make(chan *connection),
 	unregister:  make(chan *connection),
 	listen:      make(chan *connection),
