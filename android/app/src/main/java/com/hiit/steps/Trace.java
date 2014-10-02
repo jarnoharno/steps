@@ -73,16 +73,19 @@ public class Trace {
 
     private SamplerClient samplerClient;
 
+    private void checkTimestampCorrection(long timestamp) {
+        if (timestampCorrection == 0) {
+            timestampCorrection =
+                    System.currentTimeMillis() * 1000000 - timestamp;
+        }
+    }
+
     private SensorEventListener sensorEventListener = new SensorEventListener() {
 
         @Override
         public void onSensorChanged(SensorEvent event) {
             if (enabled) {
-                if (timestampCorrection == 0) {
-                    timestampCorrection =
-                            System.currentTimeMillis() * 1000000 -
-                            event.timestamp;
-                }
+                checkTimestampCorrection(event.timestamp);
                 event.timestamp += timestampCorrection;
                 samplerClient.SensorEventReceived(event);
             }
@@ -99,14 +102,9 @@ public class Trace {
         @Override
         public void onLocationChanged(Location location) {
             if (enabled) {
-                if (timestampCorrection == 0) {
-                    timestampCorrection =
-                            System.currentTimeMillis() * 1000000 -
-                            location.getElapsedRealtimeNanos();
-                }
-                location.setElapsedRealtimeNanos(
-                        location.getElapsedRealtimeNanos() + timestampCorrection
-                );
+                long ts = location.getElapsedRealtimeNanos();
+                checkTimestampCorrection(ts);
+                location.setElapsedRealtimeNanos(ts + timestampCorrection);
                 samplerClient.LocationReceived(location);
             }
         }
