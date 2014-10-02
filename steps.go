@@ -43,6 +43,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 func main() {
 	flag.Parse()
 	go h.run()
+	go fm.Run()
 	http.HandleFunc("/", HandleWebSocket)
 	err := http.ListenAndServe(*addr, nil)
 	if err != nil {

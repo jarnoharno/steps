@@ -34,6 +34,8 @@ type Range struct {
 
 type Filter struct {
 
+	name string
+
 	// first element in mux queue
 	first *MuxSample
 
@@ -44,8 +46,10 @@ type Filter struct {
 	started bool
 }
 
-func NewFilter() *Filter {
+func NewFilter(name string) *Filter {
+	log.Println("start trace", name)
 	filter := &Filter{
+		name: name,
 		ranges: make(map[string]*Range),
 	}
 	for i := range types {
