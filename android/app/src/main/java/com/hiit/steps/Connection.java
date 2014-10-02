@@ -219,12 +219,6 @@ public class Connection {
                     if (!tracing) {
                         return;
                     }
-                    // put a resume or start message in front of the queue
-                    if (traceId == null) {
-                        buffer.addFirst(startMessage().toByteArray());
-                    } else {
-                        buffer.addFirst(resumeMessage().toByteArray());
-                    }
                 }
             });
             webSocket.setStringCallback(new WebSocket.StringCallback() {
@@ -249,6 +243,10 @@ public class Connection {
                 }
             });
 
+            // send a resume message if tracing
+            if (traceId != null) {
+                send(resumeMessage().toByteArray());
+            }
             // send full buffer
             sendAll();
         }
