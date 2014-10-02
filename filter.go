@@ -3,33 +3,34 @@ package main
 import (
 	"log"
 	"./stepsproto"
-	"code.google.com/p/goprotobuf/proto"
+//	"code.google.com/p/goprotobuf/proto"
 )
 
-// 10 ms
-const remsgTime = 25000000
+// 25 ms
+const resamplePeriod = 25000000
 
 // msg types to be multiplexed
 var types = [...]string{"acc", "gyr", "mag"}
 
-type MessageMap map[string]*stepsproto.Message
+type ValueMap map[string][]float32
 
-func (s MessageMap) defined() bool {
+func (s ValueMap) complete() bool {
 	return len(s) == len(types)
 }
 
 // remsgd and multiplexed collection of msgs
 type MuxMessage struct {
 	timestamp int64
-	msgs MessageMap
+	values ValueMap
 	next *MuxMessage
 }
 
 // remsg range
 type Range struct {
+
+	// next interpolated timestamp
 	timestamp int64
-	prev *stepsproto.Message
-	next *stepsproto.Message
+	last *stepsproto.Message
 }
 
 type Filter struct {
@@ -58,42 +59,100 @@ func NewFilter(name string) *Filter {
 	return filter
 }
 
-func (f *Filter) prevDefined() bool {
+func (f *Filter) complete() bool {
 	for _, r := range f.ranges {
-		if r.prev == nil {
+		if r.last == nil {
 			return false
 		}
 	}
 	return true
 }
 
+func (f *Filter) outputInterpolate(
+		id string,
+		timestamp int64,
+		values []float32) {
+	log.Println(id, timestamp, values, "interp")
+}
+
+// entry point
+
 func (f *Filter) Send(msg *stepsproto.Message) {
+	f.mux(msg)
 	h.broadcast <- msg
 }
 
-// filters
-
 func (f *Filter) mux(msg *stepsproto.Message) {
+
 	if msg.GetType() != stepsproto.Message_SENSOR_EVENT {
-		log.Println(msg.GetType())
 		return
 	}
-	log.Println(msg.GetType(), msg.GetId(), msg.GetTimestamp())
+
+	id := msg.GetId()
+	vals := msg.GetValue()
+	timestamp := msg.GetTimestamp()
+
+	defer log.Println(id, timestamp, vals)
+
 	if !f.started {
-		f.ranges[msg.GetId()].prev = msg
-		if f.prevDefined() {
-			log.Println("got them all!")
+		f.ranges[id].last = msg
+		if f.complete() {
+			// initialize first muxed message
+			f.first = &MuxMessage{
+				timestamp: timestamp,
+				values: ValueMap{},
+			}
+			// add first values
+			f.first.values[id] = vals
+			// set range timestamps
+			for rid, r := range f.ranges {
+				if rid == id {
+					r.timestamp = timestamp + resamplePeriod
+				} else {
+					r.timestamp = timestamp
+				}
+			}
+			log.Println(id, timestamp, vals, "first")
 			f.started = true
-			return
 		}
+		return
 	}
 
-	if false {
-		newMsg := &stepsproto.Message{
-			Type: stepsproto.Message_SENSOR_EVENT.Enum(),
-			Id: proto.String("asdf"),
-			Timestamp: proto.Int64(123),
-		}
-		h.broadcast <- newMsg
+	r := f.ranges[id]
+	if timestamp < r.timestamp {
+		r.last = msg
+		return
 	}
+
+	// calculate interpolated values
+
+	sampleCount := int(timestamp - r.timestamp) / resamplePeriod + 1
+	prevValues := r.last.GetValue()
+	prevTimestamp := r.last.GetTimestamp()
+	prevTimeDiff := timestamp - prevTimestamp
+
+	deltas := make([]float64, len(prevValues))
+	values := make([]float32, len(prevValues))
+
+	// calculate deltas
+	for i := range vals {
+		valueDiff := float64(vals[i]) - float64(prevValues[i])
+		deltas[i] = valueDiff / float64(prevTimeDiff)
+	}
+
+	// interpolate
+	t := r.timestamp
+	for j := 0; j < sampleCount; j++ {
+		dt := t - prevTimestamp
+		for i := range prevValues {
+			values[i] = float32(float64(prevValues[i]) +
+				deltas[i] * float64(dt))
+		}
+		f.outputInterpolate(id, t, values)
+		t += resamplePeriod
+	}
+
+	// restore last
+	r.last = msg
+	r.timestamp = t
 }
