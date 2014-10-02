@@ -1,13 +1,11 @@
 package com.hiit.steps;
 
-import com.hiit.steps.Connection.ConnectionClient;
 import com.hiit.steps.Trace.SamplerClient;
-import com.hiit.steps.StepsProtos.Sample;
+import com.hiit.steps.StepsProtos.Message;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.Deque;
 
@@ -20,7 +18,6 @@ import android.hardware.SensorEvent;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Binder;
-import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -85,6 +82,7 @@ public class StepsService extends Service {
 
     public void startTrace() {
         connection.startTrace();
+        write.startTrace();
         trace.start();
         traceStateChanged(State.STARTED);
     }
@@ -93,6 +91,7 @@ public class StepsService extends Service {
         traceStateChanged(State.STOPPED);
         trace.stop();
         connection.stopTrace();
+        write.stopTrace();
     }
 
     public static boolean bind(Context context, ServiceConnection serviceConnection) {
@@ -171,11 +170,15 @@ public class StepsService extends Service {
         return binder;
     }
 
-    private Handler handler = new Handler();
     private Client client;
     private final IBinder binder = new StepsBinder();
-    private Connection connection = new Connection(new ConnectionClient() {
 
+    public interface ContextClient {
+        void print(String s);
+        Context getContext();
+    }
+
+    private class StepsContextClient implements ContextClient {
         @Override
         public void print(String s) {
             StepsService.this.print(s);
@@ -185,68 +188,77 @@ public class StepsService extends Service {
         public Context getContext() {
             return StepsService.this;
         }
-    });
+    }
 
-    private Trace trace = new Trace(new SamplerClient() {
+    private class ConnectionClient extends StepsContextClient
+            implements Connection.ConnectionClient {
+
+        @Override
+        public void idReceived(String id) {
+            write.renameFile(id);
+            print("received id: " + id);
+        }
+    }
+    private ConnectionClient connectionClient = new ConnectionClient();
+    private Connection connection = new Connection(connectionClient);
+
+    private class TraceClient extends StepsContextClient
+            implements SamplerClient {
         @Override
         public void SensorEventReceived(SensorEvent sensorEvent) {
-            Sample.Builder sample = Sample.newBuilder()
-                    .setType(Sample.Type.SENSOR_EVENT)
+            Message.Builder msg = Message.newBuilder()
+                    .setType(Message.Type.SENSOR_EVENT)
                     .setTimestamp(sensorEvent.timestamp);
             switch (sensorEvent.sensor.getType()) {
                 case Sensor.TYPE_ACCELEROMETER:
-                    sample.setName("acc");
+                    msg.setId("acc");
                     break;
                 case Sensor.TYPE_MAGNETIC_FIELD:
-                    sample.setName("mag");
+                    msg.setId("mag");
                     break;
                 case Sensor.TYPE_GYROSCOPE:
-                    sample.setName("gyr");
+                    msg.setId("gyr");
                     break;
                 default:
-                    sample.setName("unk");
+                    msg.setId("unk");
                     break;
             }
-            StepsProtos.SensorEvent.Builder builder =
-                    StepsProtos.SensorEvent.newBuilder();
+
             for (float value: sensorEvent.values) {
-                builder.addValue(value);
+                msg.addValue(value);
             }
-            sample.setSensorEvent(builder);
-            connection.send(sample.build().toByteArray());
+            byte[] data = msg.build().toByteArray();
+            connection.send(data);
+            write.send(data);
         }
 
         @Override
         public void LocationReceived(Location location) {
-            Sample sample = Sample.newBuilder()
-                    .setType(Sample.Type.LOCATION)
+            byte[] data = Message.newBuilder()
+                    .setType(Message.Type.LOCATION)
                     .setTimestamp(location.getElapsedRealtimeNanos())
-                    .setName(location.getProvider() ==
+                    .setId(location.getProvider() ==
                             LocationManager.GPS_PROVIDER ?
                             "gps" :
                             "net")
-                    .setLocation(StepsProtos.Location.newBuilder()
-                            .setUtctime(location.getTime())
-                            .setLatitude(location.getLatitude())
-                            .setLongitude(location.getLongitude())
-                            .setAccuracy(location.getAccuracy())
-                            .setAltitude(location.getAltitude())
-                            .setBearing(location.getBearing())
-                            .setSpeed(location.getSpeed())
-                    )
-                    .build();
-            connection.send(sample.toByteArray());
+                    .setUtctime(location.getTime())
+                    .setLatitude(location.getLatitude())
+                    .setLongitude(location.getLongitude())
+                    .setAccuracy(location.getAccuracy())
+                    .setAltitude(location.getAltitude())
+                    .setBearing(location.getBearing())
+                    .setSpeed(location.getSpeed())
+                    .build().toByteArray();
+            connection.send(data);
+            write.send(data);
         }
+    }
+    private TraceClient traceClient = new TraceClient();
+    private Trace trace = new Trace(traceClient);
 
-        @Override
-        public Context getContext() {
-            return StepsService.this;
-        }
-
-        @Override
-        public void print(String s) {
-            StepsService.this.print(s);
-        }
-    });
+    private class WriteClient extends StepsContextClient
+            implements Write.WriteClient {}
+    private WriteClient writeClient = new WriteClient();
+    private Write write = new Write(writeClient);
 
 }
