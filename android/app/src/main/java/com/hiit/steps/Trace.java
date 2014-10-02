@@ -11,11 +11,9 @@ import android.location.LocationManager;
 import android.os.Bundle;
 
 public class Trace {
-    public interface SamplerClient {
+    public interface SamplerClient extends StepsService.ContextClient {
         void SensorEventReceived(SensorEvent sensorEvent);
         void LocationReceived(Location location);
-        Context getContext();
-        void print(String s);
     }
 
     public Trace(SamplerClient samplerClient) {
