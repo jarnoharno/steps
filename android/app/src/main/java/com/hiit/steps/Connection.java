@@ -1,5 +1,7 @@
 package com.hiit.steps;
 
+import com.hiit.steps.StepsProtos.Message;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -25,9 +27,8 @@ public class Connection {
 
     private static String NAME = "android";
 
-    public interface ConnectionClient {
-        void print(String s);
-        Context getContext();
+    public interface ConnectionClient extends StepsService.ContextClient {
+        void idReceived(String id);
     }
 
     public Connection(ConnectionClient connectionClient) {
@@ -84,45 +85,31 @@ public class Connection {
 
     // private
 
-    private StepsProtos.Sample startMessage() {
-        return StepsProtos.Sample.newBuilder()
-                .setType(StepsProtos.Sample.Type.CONTROL)
-                .setName("ctrl")
-                .setTimestamp(System.currentTimeMillis() * 1000000)
-                .setControl(StepsProtos.Control.newBuilder()
-                                .setType(StepsProtos.Control.Type.START)
-                                .setStart(StepsProtos.Start.newBuilder()
-                                                .setName("android")
-                                )
-                )
+    private static long currentTimeNanos() {
+        return System.currentTimeMillis() * 1000000;
+    }
+
+    private Message startMessage() {
+        return Message.newBuilder()
+                .setType(Message.Type.START)
+                .setTimestamp(currentTimeNanos())
+                .setId(NAME)
                 .build();
     }
 
-    private StepsProtos.Sample stopMessage() {
-        return StepsProtos.Sample.newBuilder()
-                .setType(StepsProtos.Sample.Type.CONTROL)
-                .setName("ctrl")
-                .setTimestamp(System.currentTimeMillis() * 1000000)
-                .setControl(StepsProtos.Control.newBuilder()
-                                .setType(StepsProtos.Control.Type.STOP)
-                                .setStop(StepsProtos.Stop.newBuilder()
-                                                .setId(traceId)
-                                )
-                )
+    private Message stopMessage() {
+        return Message.newBuilder()
+                .setType(Message.Type.STOP)
+                .setTimestamp(currentTimeNanos())
+                .setId(traceId)
                 .build();
     }
 
-    private StepsProtos.Sample resumeMessage() {
-        return StepsProtos.Sample.newBuilder()
-                .setType(StepsProtos.Sample.Type.CONTROL)
-                .setName("ctrl")
-                .setTimestamp(System.currentTimeMillis() * 1000000)
-                .setControl(StepsProtos.Control.newBuilder()
-                                .setType(StepsProtos.Control.Type.RESUME)
-                                .setResume(StepsProtos.Resume.newBuilder()
-                                                .setId(traceId)
-                                )
-                )
+    private Message resumeMessage() {
+        return Message.newBuilder()
+                .setType(Message.Type.RESUME)
+                .setTimestamp(currentTimeNanos())
+                .setId(traceId)
                 .build();
     }
 
@@ -219,12 +206,6 @@ public class Connection {
                     if (!tracing) {
                         return;
                     }
-                    // put a resume or start message in front of the queue
-                    if (traceId == null) {
-                        buffer.addFirst(startMessage().toByteArray());
-                    } else {
-                        buffer.addFirst(resumeMessage().toByteArray());
-                    }
                 }
             });
             webSocket.setStringCallback(new WebSocket.StringCallback() {
@@ -237,10 +218,9 @@ public class Connection {
                                             ByteBufferList byteBufferList) {
                     byte[] data = byteBufferList.getAllByteArray();
                     try {
-                        StepsProtos.Sample sample = StepsProtos.Sample
-                                .parseFrom(data);
-                        traceId = sample.getControl().getStartAck().getId();
-                        print("received id: " + traceId);
+                        Message msg = Message.parseFrom(data);
+                        traceId = msg.getId();
+                        connectionClient.idReceived(traceId);
                     } catch (InvalidProtocolBufferException e) {
                         print(e.toString());
                     } finally {
@@ -249,6 +229,10 @@ public class Connection {
                 }
             });
 
+            // send a resume message if tracing
+            if (traceId != null) {
+                send(resumeMessage().toByteArray());
+            }
             // send full buffer
             sendAll();
         }
