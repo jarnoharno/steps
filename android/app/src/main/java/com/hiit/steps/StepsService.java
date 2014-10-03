@@ -219,6 +219,9 @@ public class StepsService extends Service {
                 case Sensor.TYPE_GYROSCOPE:
                     msg.setId("gyr");
                     break;
+                case Sensor.TYPE_ROTATION_VECTOR:
+                    msg.setId("rot");
+                    break;
                 default:
                     msg.setId("unk");
                     break;
