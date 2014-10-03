@@ -32,11 +32,17 @@ struct orientation {
 //---------------------------------------------------------------------------------------------------
 // Function declarations
 
+void madgwick_init(struct orientation *o);
+
+void madgwick_update_array(struct orientation *o, float sampleFreq, float beta,
+		float *values);
+
 void madgwick_update(
 		struct orientation *o, float sampleFreq, float beta,
 		float gx, float gy, float gz,
 		float ax, float ay, float az,
 		float mx, float my, float mz);
+
 void madgwick_update_imu(
 		struct orientation *o, float sampleFreq, float beta,
 		float gx, float gy, float gz,

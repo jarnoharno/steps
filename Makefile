@@ -6,7 +6,7 @@ PROTO := $(PBSRCDIR)/steps.proto
 $(PBDIR)/%.pb.go: $(PBSRCDIR)/%.proto $(PBDIR)
 	protoc --proto_path=$(PBSRCDIR) --go_out=$(PBDIR) $<
 
-steps: *.go $(PBDIR)/steps.pb.go
+steps: *.go *.c *.h $(PBDIR)/steps.pb.go
 	go build
 
 $(PBDIR):
@@ -30,7 +30,7 @@ clean-www:
 	rm -f www/steps.js
 
 .PHONY: www
-www: www/steps.json www/bundle.js
+www: www/steps.json
 
 # scripts
 

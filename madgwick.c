@@ -43,6 +43,21 @@ float invSqrt(float x);
 //---------------------------------------------------------------------------------------------------
 // AHRS algorithm update
 
+void madgwick_init(struct orientation *o) {
+	o->q0 = 1.0f;
+	o->q1 = 0.0f;
+	o->q2 = 0.0f;
+	o->q3 = 0.0f;
+}
+
+void madgwick_update_array(struct orientation *o, float sampleFreq, float beta,
+		float *values) {
+	madgwick_update(o, sampleFreq, beta,
+			values[0], values[1], values[2],
+			values[3], values[4], values[5],
+			values[6], values[7], values[8]);
+}
+
 void madgwick_update(
 		struct orientation *o, float sampleFreq, float beta,
 		float gx, float gy, float gz,

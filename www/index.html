@@ -8,7 +8,11 @@
     <script src="ProtoBuf.min.js"></script>
   </head>
   <body>
-    KEK
+    <svg viewBox="-60 -60 120 120">
+      <polygon id="arrow" points="0,-50 50,0 25,0 25,50 -25,50 -25,0 -50,0"
+        transform="rotate(45 0 0)"
+      />
+    </svg>
     <script>
 // meh...
 
@@ -29,20 +33,67 @@ var ProtoBuf = dcodeIO.ProtoBuf;
 
 var builder = ProtoBuf.loadJsonFile('steps.json');
 var protos = builder.build("stepsproto");
-var Sample = protos.Sample;
+var Message = protos.Message;
 
 // web socket
 
+var arrow;
+
+window.onload = function() {
+  arrow = document.getElementById("arrow");
+}
 
 ws.onmessage = function(ev) {
   var fileReader = new FileReader();
   fileReader.onload = function() {
-    var sample = Sample.decode(this.result);
-    console.log(sample);
+    var msg = Message.decode(this.result);
+    var eul = euler(msg.value)
+    arrow.setAttribute("transform", rotation(eul.z));
   };
   fileReader.readAsArrayBuffer(ev.data);
 };
 
+var rad2deg = 180 / Math.PI
+
+function euler(q) {
+  q1 = q[0];
+  q2 = q[1];
+  q3 = q[2];
+  q4 = q[3];
+  return {
+    z: Math.atan2(2*q2*q3 - 2*q1*q4, 2*q1*q1 + 2*q2*q2 - 1) * rad2deg,
+    y: -Math.asin(2*q2*q4 + 2*q1*q3) * rad2deg,
+    x: Math.atan2(2*q3*q4 - 2*q1*q2, 2*q1*q1 + 2*q4*q4 - 1) * rad2deg,
+  }
+}
+
+function rotation(angle) {
+  return "rotate(" + angle + " 0 0)";
+}
+
+
+
+
+/*
+	// quaternion slice
+	o := f.orientation
+	q := []float32{
+		float32(o.q0),
+		float32(o.q1),
+		float32(o.q2),
+		float32(o.q3),
+	}
+	q1 := float64(o.q0)
+	q2 := float64(o.q1)
+	q3 := float64(o.q2)
+	q4 := float64(o.q3)
+
+	// euler angles in radians (madgwick 2010)
+	z := math.Atan2(2*q2*q3 - 2*q1*q4, 2*q1*q1 + 2*q2*q2 - 1) * rad2deg
+	y := -math.Asin(2*q2*q4 + 2*q1*q3) * rad2deg
+	x := math.Atan2(2*q3*q4 - 2*q1*q2, 2*q1*q1 + 2*q4*q4 - 1) * rad2deg
+	e := []float64{z, y, x}
+*/
 ws.onopen = function(ev) {
   ws.send("listen");
 };
