@@ -71,29 +71,6 @@ function rotation(angle) {
   return "rotate(" + angle + " 0 0)";
 }
 
-
-
-
-/*
-	// quaternion slice
-	o := f.orientation
-	q := []float32{
-		float32(o.q0),
-		float32(o.q1),
-		float32(o.q2),
-		float32(o.q3),
-	}
-	q1 := float64(o.q0)
-	q2 := float64(o.q1)
-	q3 := float64(o.q2)
-	q4 := float64(o.q3)
-
-	// euler angles in radians (madgwick 2010)
-	z := math.Atan2(2*q2*q3 - 2*q1*q4, 2*q1*q1 + 2*q2*q2 - 1) * rad2deg
-	y := -math.Asin(2*q2*q4 + 2*q1*q3) * rad2deg
-	x := math.Atan2(2*q3*q4 - 2*q1*q2, 2*q1*q1 + 2*q4*q4 - 1) * rad2deg
-	e := []float64{z, y, x}
-*/
 ws.onopen = function(ev) {
   ws.send("listen");
 };
