@@ -11,15 +11,31 @@
     <script src="controls/OrbitControls.js"></script>
     <style>
       body {
+        color: #61443e;
+        font-family:Monospace;
+        font-size:13px;
+        text-align:center;
+
         background:#fff;
         padding:0;
         margin:0;
         font-weight: bold;
         overflow:hidden;
       }
+      #info {
+        color: #666666;
+        position: absolute;
+        top: 0px; width: 100%;
+        padding: 5px;
+      }
+      a {
+        color: blue;
+      }
     </style>
   </head>
   <body>
+    <div id="container"></div>
+    <div id="info"><a id="toggle" href="javascript:toggle();">madgwick</a> - steps</div>
     <script>
 // meh...
 
@@ -45,15 +61,10 @@ var Message = protos.Message;
 
 // web socket
 
-var arrow;
 var eul = { z: 0, y: 0, x: 0 };
 var q = new THREE.Quaternion();
 
-function rotateArrow() {
-  arrow.setAttribute("transform", rotation(eul.z));
-  setTimeout(rotateArrow, 25);
-}
-
+var useQtn = true;
 
 ws.onmessage = function(ev) {
   var fileReader = new FileReader();
@@ -61,7 +72,12 @@ ws.onmessage = function(ev) {
     var msg = Message.decode(this.result);
     // eul = euler(msg.value);
     var o = msg.value;
-    q.set(o[1], o[2], o[3], o[0]);
+    //console.log(msg);
+    if (msg.id === 'qtn' && useQtn) {
+      q.set(o[1], o[2], o[3], o[0]);
+    } else if (msg.id === 'rot' && !useQtn) {
+      q.set(o[0], o[1], o[2], o[3]);
+    }
   };
   fileReader.readAsArrayBuffer(ev.data);
 };
@@ -97,7 +113,7 @@ var controls = new THREE.OrbitControls(camera);
 var renderer = new THREE.WebGLRenderer();
 renderer.setClearColor( 0xffffff );
 renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+document.getElementById('container').appendChild(renderer.domElement);
 
 var geometry = new THREE.BoxGeometry(70.6, 136.6, 8.6);
 var material = new THREE.MeshNormalMaterial();
@@ -106,6 +122,38 @@ var cube = new THREE.Mesh( geometry, material );
 var plane = new THREE.Mesh(
     new THREE.PlaneGeometry(1000, 1000, 20, 20),
     new THREE.MeshBasicMaterial({ color: 0xcccccc, wireframe: true }));
+
+function arrow(color, rot) {
+  var xarrowmat = new THREE.LineBasicMaterial({
+    color: color
+  });
+
+  var xarrowgeom = new THREE.Geometry();
+  xarrowgeom.vertices.push(
+    new THREE.Vector3(0, 0, 1),
+    new THREE.Vector3(100, 0, 1)
+  );
+  var xarrowgeomtip = new THREE.Geometry();
+  xarrowgeomtip.vertices.push(
+    new THREE.Vector3(90, 10, 1),
+    new THREE.Vector3(100, 0, 1),
+    new THREE.Vector3(90, -10, 1)
+  );
+
+  var xarrow = new THREE.Line(xarrowgeom, xarrowmat);
+  var xarrowtip = new THREE.Line(xarrowgeomtip, xarrowmat);
+  Object.keys(rot).forEach(function(k) {
+      xarrow.rotation[k] = rot[k];
+      xarrowtip.rotation[k] = rot[k];
+  });
+
+  scene.add(xarrow);
+  scene.add(xarrowtip);
+}
+
+arrow('#ff0000',{});
+arrow('#00ff00',{z:Math.PI/2});
+arrow('#0000ff',{z:Math.PI/2,x:Math.PI/2});
 scene.add(cube);
 scene.add(plane);
 
@@ -127,6 +175,16 @@ function render() {
   renderer.render(scene, camera);
 }
 render();
+
+function toggle() {
+  useQtn = !useQtn
+  t = document.getElementById('toggle');
+  if (useQtn) {
+    t.text = 'madgwick';
+  } else {
+    t.text = 'android';
+  }
+}
 
 // ...meh
     </script>

@@ -175,6 +175,10 @@ func (f *Filter) mux(msg *stepsproto.Message) {
 	if msg.GetType() != stepsproto.Message_SENSOR_EVENT {
 		return
 	}
+	if msg.GetId() == "rot" {
+		h.broadcast <- msg
+		return
+	}
 
 	id := msg.GetId()
 	vals := msg.GetValue()
