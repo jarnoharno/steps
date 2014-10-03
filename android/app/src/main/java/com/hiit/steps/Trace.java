@@ -62,6 +62,7 @@ public class Trace {
             Sensor.TYPE_ACCELEROMETER,
             Sensor.TYPE_GYROSCOPE,
             Sensor.TYPE_MAGNETIC_FIELD,
+            Sensor.TYPE_ROTATION_VECTOR,
     };
 
     private static String[] locationProviders = {
