@@ -81,7 +81,7 @@ func (f *Filter) complete() bool {
 }
 
 var sampleFreq float32 = 1.0 / (resamplePeriod / 1e9)
-const beta float32 = 0.1
+const beta float32 = 0.04
 const rad2deg float64 = 180 / math.Pi
 
 func (f *Filter) madgwick(timestamp int64, values []float32) {
