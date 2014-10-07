@@ -7,8 +7,9 @@ PROTO := $(PBSRCDIR)/steps.proto
 $(PBDIR)/%.pb.go: $(PBSRCDIR)/%.proto $(PBDIR)
 	protoc --proto_path=$(PBSRCDIR) --go_out=$(PBDIR) $<
 
-$(SERVER)/steps: $(SERVER)/*.go $(SERVER)/*.c $(SERVER)/*.h $(PBDIR)/steps.pb.go
-	cd $(SERVER) && go build
+$(SERVERDIR)/steps: $(SERVERDIR)/*.go $(SERVERDIR)/*.c $(SERVERDIR)/*.h \
+		$(PBDIR)/steps.pb.go
+	cd $(SERVERDIR) && go build -o steps
 
 $(PBDIR):
 	mkdir -p $@

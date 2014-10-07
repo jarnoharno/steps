@@ -11,12 +11,12 @@ message Message {
 
         // control messages
         START = 3;
-        STOP = 5;
-        RESUME = 6;
-        REGISTER = 7;
-        LOGIN = 9;
-        LISTEN = 10;
-        LOGOUT = 11;
+        STOP = 4;
+        RESUME = 5;
+        REGISTER = 6;
+        LOGIN = 7;
+        LISTEN = 8;
+        LOGOUT = 9;
     }
     required Type type = 1;
     optional int64 timestamp = 2; // nanoseconds

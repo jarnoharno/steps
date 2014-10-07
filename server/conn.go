@@ -170,15 +170,15 @@ func (c *connection) ReadLoop() {
 
 				// send ack
 				c.send <- &stepsproto.Message{
-					Type: stepsproto.Message_START_ACK.Enum(),
+					Type: stepsproto.Message_START.Enum(),
 					Timestamp: proto.Int64(time.Now().UnixNano()),
-					Id: proto.String(id),
+					TraceId: proto.String(id),
 				}
 			case stepsproto.Message_STOP:
 				// ignore trace id
 				c.DiscardFilter(true)
 			case stepsproto.Message_RESUME:
-				id := msg.GetId()
+				id := msg.GetTraceId()
 				log.Println("resume trace", id)
 
 				// ignore if we already have the correct trace

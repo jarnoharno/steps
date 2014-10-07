@@ -4,9 +4,7 @@ local.properties
 *.iml
 build
 stepsproto
-/steps
+/server/steps
 /ublox/ublox
-/ublox/*.log
 /node_modules
 /www/steps.json
-/steps.out
