@@ -1,0 +1,47 @@
+1   Client registering to server
+
+1.2 Client sends REGISTER with freely chosen client_id.
+1.3 Server responds with REGISTER with a randomly generated key or without
+    key if a client has already registered with the same client_id. The client
+    does not have to login after registering successfully if the connection is
+    left open.
+
+2   Client logging in to server
+
+2.1 Client sends LOGIN with client_id and key received from server when
+    registering.
+
+3   Client starts a trace (client must be logged in)
+
+3.1 Client sends START.
+3.2 Server responds with START with a randomly generated trace_id that
+    identifies the trace.
+
+4   Client stops a trace (client must be logged in)
+
+4.1 Client sends STOP with trace_id that identifies the trace. The trace id will
+    not be reused.
+
+5   Client resumes a trace (client must be logged in)
+
+5.1 Client sends RESUME with trace_id the identifies the trace. This can be done
+    after a breakup in connection.
+
+6   Web client logs in.
+
+6.1 Web client send LISTEN. After this server will send LOGIN, LOGOUT, START
+    and STOP messages with client_id and trace_id (with START and STOP).
+    A message will be sent for already connected clients and already started
+    traces.
+
+7   Web client starts a trace on client.
+
+7.1 Web client sends START with client_id. The server responds with START
+    with client_id and trace_id. The server will start the client by sending
+    it START with trace_id.
+
+8   Web client stops a trace on client.
+
+8.1 Web client sends STOP with client_id and trace_id. The server responds with
+    STOP with client_id and trace_id. The server will start the client by
+    sending it STOP with trace_id.

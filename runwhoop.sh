@@ -1,6 +1,8 @@
 #!/bin/bash
-export GOPATH=/home/jao/go
+export STEPSPATH=$HOME/.steps
+export GOPATH=$HOME/go
 pkill steps
-cd /home/jao/steps
+mkdir -p $STEPSPATH
+cd $HOME/steps
 make
-nohup ./steps > steps.out 2>&1 < /dev/null &
+nohup ./server/steps > $STEPSPATH/steps.out 2>&1 < /dev/null &

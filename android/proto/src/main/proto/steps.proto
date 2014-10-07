@@ -11,13 +11,16 @@ message Message {
 
         // control messages
         START = 3;
-        START_ACK = 4;
         STOP = 5;
         RESUME = 6;
+        REGISTER = 7;
+        LOGIN = 9;
+        LISTEN = 10;
+        LOGOUT = 11;
     }
     required Type type = 1;
     optional int64 timestamp = 2; // nanoseconds
-    optional string id = 3; // reused for control messages
+    optional string sensor_id = 3;
     repeated float value = 4;
 
     // location
@@ -28,4 +31,8 @@ message Message {
     optional double altitude = 9;
     optional double bearing = 10;
     optional double speed = 11;
+
+    optional string key = 12;
+    optional string trace_id = 13;
+    optional string client_id = 14;
 }
