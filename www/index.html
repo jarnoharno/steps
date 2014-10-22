@@ -178,11 +178,11 @@ render();
 
 function toggle() {
   useQtn = !useQtn
-  t = document.getElementById('toggle');
+  var t = document.getElementById('toggle');
   if (useQtn) {
-    t.text = 'madgwick';
+    t.textContent = 'madgwick';
   } else {
-    t.text = 'android';
+    t.textContent = 'android';
   }
 }
 
