@@ -5,10 +5,38 @@ package main
 import "C"
 
 import (
+	"fmt"
 	"log"
 	"math"
+	"os"
+	"path"
+	"bufio"
 	"./stepsproto"
+	"code.google.com/p/gogoprotobuf/proto"
 )
+
+const (
+    _  = iota
+    KB float64 = 1 << (10 * iota)
+    MB
+    GB
+    TB
+)
+
+func byteString(b int64) string {
+	bf := float64(b)
+    switch {
+    case bf >= TB:
+        return fmt.Sprintf("%.2fTB", bf/TB)
+    case bf >= GB:
+        return fmt.Sprintf("%.2fGB", bf/GB)
+    case bf >= MB:
+        return fmt.Sprintf("%.2fMB", bf/MB)
+    case bf >= KB:
+        return fmt.Sprintf("%.2fKB", bf/KB)
+    }
+    return fmt.Sprintf("%dB", b)
+}
 
 // 25 ms
 const resamplePeriod = 25000000
@@ -53,22 +81,58 @@ type Filter struct {
 
 	// madgwick orientation state
 	orientation *C.struct_orientation
+
+	// output file
+	file *os.File
+	writer *bufio.Writer
 }
 
 func NewFilter(name string) *Filter {
-	log.Println("start trace", name)
+	p := path.Join(tracedir, "steps" + name)
+	file, err := os.Create(p)
+	if err != nil {
+		log.Printf("Could not create file for trace (%s)\n", p)
+	}
+	var writer *bufio.Writer
+	if file != nil {
+		writer = bufio.NewWriter(file)
+		log.Println("writing to", p)
+	} else {
+		log.Println("start trace", name, "but not writing to disk")
+	}
+
 	filter := &Filter{
 		name: name,
 		ranges: make(map[string]*Range),
 		root: &MuxMessage{},
 		started: false,
 		orientation: &C.struct_orientation{},
+		file: file,
+		writer: writer,
 	}
 	for i := range types {
 		filter.ranges[types[i]] = &Range{}
 	}
 	C.madgwick_init(filter.orientation)
 	return filter
+}
+
+func (f *Filter) Stop() {
+	if f.file == nil {
+		log.Println("stopped trace", f.name)
+		return
+	}
+	f.writer.Flush()
+	f.file.Sync()
+	fi, err := f.file.Stat()
+	if err != nil {
+		log.Println("Couldn't read size of", f.file.Name())
+	} else {
+		log.Printf("Wrote %s to %s\n", byteString(fi.Size()), f.file.Name())
+	}
+	f.file.Close()
+	f.writer = nil
+	f.file = nil
 }
 
 func (f *Filter) complete() bool {
@@ -170,21 +234,53 @@ func broadcast(timestamp int64, id string, values []float32) {
 	h.broadcast <- msg
 }
 
+func (f *Filter) write(msg *stepsproto.Message) {
+	if f.writer == nil {
+		return
+	}
+	data, err := proto.Marshal(msg)
+	if err != nil {
+		log.Println("Couldn't marshal message:", err)
+		return
+	}
+	_, err = f.writer.Write(data)
+	if err != nil {
+		log.Println("Couldn't write message to disk:", err)
+	}
+}
+
 func (f *Filter) mux(msg *stepsproto.Message) {
 
+	// ignore control messages
 	if msg.GetType() != stepsproto.Message_SENSOR_EVENT {
 		return
 	}
-	if msg.GetSensorId() == "rot" {
+
+	// write to disk
+	f.write(msg)
+
+	id := msg.GetSensorId()
+
+	// broadcast rot
+	if id == "rot" {
 		h.broadcast <- msg
 		return
 	}
 
-	id := msg.GetSensorId()
+	// ignore messages that do not participate in AHRS
+	ignore := true
+	for _, t := range types {
+		if t == id {
+			ignore = false
+			break
+		}
+	}
+	if ignore {
+		return
+	}
+
 	vals := msg.GetValue()
 	timestamp := msg.GetTimestamp()
-
-	//defer log.Println(id, timestamp, vals)
 
 	if !f.started {
 		f.ranges[id].last = msg

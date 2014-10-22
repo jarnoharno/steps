@@ -211,19 +211,19 @@ public class StepsService extends Service {
                     .setTimestamp(sensorEvent.timestamp);
             switch (sensorEvent.sensor.getType()) {
                 case Sensor.TYPE_ACCELEROMETER:
-                    msg.setId("acc");
+                    msg.setSensorId("acc");
                     break;
                 case Sensor.TYPE_MAGNETIC_FIELD:
-                    msg.setId("mag");
+                    msg.setSensorId("mag");
                     break;
                 case Sensor.TYPE_GYROSCOPE:
-                    msg.setId("gyr");
+                    msg.setSensorId("gyr");
                     break;
                 case Sensor.TYPE_ROTATION_VECTOR:
-                    msg.setId("rot");
+                    msg.setSensorId("rot");
                     break;
                 default:
-                    msg.setId("unk");
+                    msg.setSensorId("unk");
                     break;
             }
 
@@ -240,7 +240,7 @@ public class StepsService extends Service {
             byte[] data = Message.newBuilder()
                     .setType(Message.Type.LOCATION)
                     .setTimestamp(location.getElapsedRealtimeNanos())
-                    .setId(location.getProvider() ==
+                    .setSensorId(location.getProvider() ==
                             LocationManager.GPS_PROVIDER ?
                             "gps" :
                             "net")

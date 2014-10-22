@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"./stepsproto"
 	"github.com/gorilla/websocket"
-	"code.google.com/p/goprotobuf/proto"
+	"code.google.com/p/gogoprotobuf/proto"
 )
 
 const (
@@ -190,10 +190,12 @@ func (c *connection) ReadLoop() {
 				c.DiscardFilter(true)
 				c.filter = <-fm.Get(c, id)
 			default:
-				if c.filter != nil {
-					c.filter.Send(msg)
+				if c.filter == nil {
+					// ignore
+					continue
 				}
-				// else trace not started, ignoring samples
+				c.filter.Send(msg)
+
 			}
 		}
 	}

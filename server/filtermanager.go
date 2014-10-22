@@ -2,7 +2,6 @@ package main
 
 import (
 	"time"
-	"log"
 )
 
 // filter manager
@@ -74,8 +73,8 @@ type expired struct {
 }
 
 func removeFilter(filters map[string]*filterWait, name string) {
+	filters[name].filter.Stop()
 	delete(filters, name)
-	log.Println("stop trace", name)
 }
 
 func (fm *FilterManager) Run() {

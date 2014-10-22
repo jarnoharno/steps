@@ -3,26 +3,36 @@ package main
 import (
 	"flag"
 	"log"
-	"regexp"
+	"path"
+	"os"
+	"os/user"
 	"net/http"
-	"net/url"
 	"github.com/gorilla/websocket"
 )
 
+var tracedir string
+
+func init() {
+	user, err := user.Current()
+	if err != nil {
+		log.Fatalln("Can't detect current user")
+	}
+	if user.HomeDir == "" {
+		log.Fatalln("Can't detect user home directory")
+	}
+	tracedir = path.Join(user.HomeDir, ".steps/traces")
+	err = os.MkdirAll(tracedir, 0777)
+	if err != nil {
+		log.Fatalf("Can't create directory for traces (%s)\n", tracedir)
+	}
+}
+
 var addr = flag.String("addr", "localhost:8080", "service address")
-var originRegex = regexp.MustCompile("^((([a-z]+\\.)*whoop\\.pw)|localhost)$")
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		origin := r.Header["Origin"]
-		if len(origin) == 0 {
-			return true
-		}
-		u, err := url.Parse(origin[0])
-		if err != nil {
-			return false
-		}
-		return originRegex.MatchString(u.Host)
+		// connection is proxied
+		return true
 	},
 }
 

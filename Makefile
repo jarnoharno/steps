@@ -5,14 +5,22 @@ PBDIR := $(SERVERDIR)/stepsproto
 PROTO := $(PBSRCDIR)/steps.proto
 
 $(PBDIR)/%.pb.go: $(PBSRCDIR)/%.proto $(PBDIR)
-	protoc --proto_path=$(PBSRCDIR) --go_out=$(PBDIR) $<
+	protoc --proto_path=$(PBSRCDIR) --gogo_out=$(PBDIR) $<
 
 $(SERVERDIR)/steps: $(SERVERDIR)/*.go $(SERVERDIR)/*.c $(SERVERDIR)/*.h \
 		$(PBDIR)/steps.pb.go
-	cd $(SERVERDIR) && go build -o steps
+	cd $(SERVERDIR) && go build -o stepsd
 
 $(PBDIR):
 	mkdir -p $@
+
+# julia
+
+.PHONY: julia
+julia: julia/steps_pb.jl
+
+julia/%_pb.jl: proto/%.proto
+	protoc -I=proto --julia_out=julia $<
 
 # www
 

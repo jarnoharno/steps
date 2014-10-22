@@ -32,6 +32,7 @@ message Message {
     optional double bearing = 10;
     optional double speed = 11;
 
+    // control data
     optional string key = 12;
     optional string trace_id = 13;
     optional string client_id = 14;

@@ -93,7 +93,6 @@ public class Connection {
         return Message.newBuilder()
                 .setType(Message.Type.START)
                 .setTimestamp(currentTimeNanos())
-                .setId(NAME)
                 .build();
     }
 
@@ -101,7 +100,7 @@ public class Connection {
         return Message.newBuilder()
                 .setType(Message.Type.STOP)
                 .setTimestamp(currentTimeNanos())
-                .setId(traceId)
+                .setTraceId(traceId)
                 .build();
     }
 
@@ -109,7 +108,7 @@ public class Connection {
         return Message.newBuilder()
                 .setType(Message.Type.RESUME)
                 .setTimestamp(currentTimeNanos())
-                .setId(traceId)
+                .setTraceId(traceId)
                 .build();
     }
 
@@ -170,7 +169,7 @@ public class Connection {
     private void connectNow() {
         enableConnectivityReceiver(false);
         webSocketFuture = AsyncHttpClient.getDefaultInstance()
-                .websocket("wss://whoop.pw/steps/ws", null,
+                .websocket("wss://local.host/steps/ws", null,
                         webSocketConnectCallback);
     }
 
@@ -219,7 +218,7 @@ public class Connection {
                     byte[] data = byteBufferList.getAllByteArray();
                     try {
                         Message msg = Message.parseFrom(data);
-                        traceId = msg.getId();
+                        traceId = msg.getTraceId();
                         connectionClient.idReceived(traceId);
                     } catch (InvalidProtocolBufferException e) {
                         print(e.toString());
