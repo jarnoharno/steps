@@ -2,10 +2,15 @@ package com.hiit.steps;
 
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.ToggleButton;
@@ -20,6 +25,13 @@ public class StepsActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_steps);
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.steps_menu, menu);
+        return true;
     }
 
     @Override
@@ -154,4 +166,9 @@ public class StepsActivity extends Activity {
             }
         }
     };
+
+    public void menuSettingsClicked(MenuItem menuItem) {
+        Intent intent = new Intent(this, SettingsActivity.class);
+        startActivity(intent);
+    }
 }

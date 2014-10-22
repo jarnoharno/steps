@@ -2,5 +2,10 @@
 <resources>
 
     <string name="app_name">Steps</string>
+    <string name="pref_webSocketUrl">WebSocket URL</string>
+    <string name="pref_webSocketUrl_default">wws://local.host/steps/ws</string>
+    <string name="pref_webSocketUrl_summary">Set WebSocket URL</string>
+    <string name="menu_settings">Settings</string>
+    <string name="app_settings">Settings</string>
 
 </resources>
