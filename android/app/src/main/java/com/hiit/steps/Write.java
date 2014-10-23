@@ -1,7 +1,10 @@
 package com.hiit.steps;
 
 import android.content.Context;
+import android.util.Log;
 import android.widget.Toast;
+
+import com.google.protobuf.CodedOutputStream;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -18,11 +21,13 @@ public class Write {
     }
 
     public void send(byte[] data) {
-        if (stream == null) {
+        if (codedOutputStream == null) {
             return;
         }
         try {
-            stream.write(data);
+            // write buffer size as varint first
+            codedOutputStream.writeInt32NoTag(data.length);
+            codedOutputStream.writeRawBytes(data);
             rows++;
         } catch (IOException e) {
             close();
@@ -40,7 +45,10 @@ public class Write {
         try {
             file = File.createTempFile(FILE_PREFIX, FILE_SUFFIX,
                     writeClient.getContext().getCacheDir());
-            stream = new BufferedOutputStream(new FileOutputStream(file));
+            bufferedOutputStream =
+                    new BufferedOutputStream(new FileOutputStream(file));
+            codedOutputStream =
+                    CodedOutputStream.newInstance(bufferedOutputStream);
             writeClient.print("writing to " + file.toString());
         } catch (IOException e) {
             e.printStackTrace();
@@ -79,14 +87,16 @@ public class Write {
 
     private void close() {
         try {
-            stream.close();
+            codedOutputStream.flush();
+            bufferedOutputStream.close();
         } catch (IOException e) {
             writeClient.print("Error closing file");
         }
     }
 
     private void reset() {
-        stream = null;
+        bufferedOutputStream = null;
+        codedOutputStream = null;
         file = null;
         rows = 0;
         fileName = null;
@@ -98,7 +108,8 @@ public class Write {
     private WriteClient writeClient;
 
     private File file;
-    private BufferedOutputStream stream;
+    private BufferedOutputStream bufferedOutputStream;
+    private CodedOutputStream codedOutputStream;
 
     private int rows;
     private String fileName;

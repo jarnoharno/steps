@@ -6,7 +6,7 @@ option java_outer_classname = "StepsProtos";
 message Message {
 
     enum Type {
-        SENSOR_EVENT =  1;
+        SENSOR_EVENT = 1;
         LOCATION = 2;
 
         // control messages

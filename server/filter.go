@@ -12,7 +12,7 @@ import (
 	"path"
 	"bufio"
 	"./stepsproto"
-	"code.google.com/p/gogoprotobuf/proto"
+	protoio "code.google.com/p/gogoprotobuf/io"
 )
 
 const (
@@ -85,6 +85,7 @@ type Filter struct {
 	// output file
 	file *os.File
 	writer *bufio.Writer
+	protowriter protoio.WriteCloser
 }
 
 func NewFilter(name string) *Filter {
@@ -94,8 +95,10 @@ func NewFilter(name string) *Filter {
 		log.Printf("Could not create file for trace (%s)\n", p)
 	}
 	var writer *bufio.Writer
+	var protowriter protoio.WriteCloser
 	if file != nil {
 		writer = bufio.NewWriter(file)
+		protowriter = protoio.NewDelimitedWriter(writer)
 		log.Println("writing to", p)
 	} else {
 		log.Println("start trace", name, "but not writing to disk")
@@ -109,6 +112,7 @@ func NewFilter(name string) *Filter {
 		orientation: &C.struct_orientation{},
 		file: file,
 		writer: writer,
+		protowriter: protowriter,
 	}
 	for i := range types {
 		filter.ranges[types[i]] = &Range{}
@@ -122,6 +126,7 @@ func (f *Filter) Stop() {
 		log.Println("stopped trace", f.name)
 		return
 	}
+	f.protowriter.Close()
 	f.writer.Flush()
 	f.file.Sync()
 	fi, err := f.file.Stat()
@@ -131,6 +136,7 @@ func (f *Filter) Stop() {
 		log.Printf("Wrote %s to %s\n", byteString(fi.Size()), f.file.Name())
 	}
 	f.file.Close()
+	f.protowriter = nil
 	f.writer = nil
 	f.file = nil
 }
@@ -235,15 +241,10 @@ func broadcast(timestamp int64, id string, values []float32) {
 }
 
 func (f *Filter) write(msg *stepsproto.Message) {
-	if f.writer == nil {
+	if f.file == nil {
 		return
 	}
-	data, err := proto.Marshal(msg)
-	if err != nil {
-		log.Println("Couldn't marshal message:", err)
-		return
-	}
-	_, err = f.writer.Write(data)
+	err := f.protowriter.WriteMsg(msg)
 	if err != nil {
 		log.Println("Couldn't write message to disk:", err)
 	}
