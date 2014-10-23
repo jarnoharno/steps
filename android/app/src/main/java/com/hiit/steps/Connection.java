@@ -6,9 +6,12 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.koushikdutta.async.ByteBufferList;
@@ -25,8 +28,6 @@ import java.util.concurrent.Future;
 
 public class Connection {
 
-    private static String NAME = "android";
-
     public interface ConnectionClient extends StepsService.ContextClient {
         void idReceived(String id);
     }
@@ -38,9 +39,34 @@ public class Connection {
     public void connect() {
         if (!enabled) {
             enabled = true;
+            sharedPreferences = PreferenceManager.getDefaultSharedPreferences(
+                    connectionClient.getContext());
+            sharedPreferences.registerOnSharedPreferenceChangeListener(
+                    onSharedPreferenceChangeListener);
+
             tryConnect();
         }
     }
+
+    private OnSharedPreferenceChangeListener onSharedPreferenceChangeListener =
+            new OnSharedPreferenceChangeListener() {
+        @Override
+        public void onSharedPreferenceChanged(
+                SharedPreferences sharedPreferences, String key) {
+            if (!key.equals(SettingsActivity.KEY_PREF_WEBSOCKETURL)) {
+                return;
+            }
+            if (webSocketFuture != null) {
+                webSocketFuture.cancel(true);
+                webSocketFuture = null;
+                retryConnect();
+            } else if (webSocket != null) {
+                webSocket.close();
+                webSocket = null;
+                // websocket close callback will call retryConnect
+            }
+        }
+    };
 
     public void disconnect() {
         enabled = false;
@@ -51,6 +77,11 @@ public class Connection {
         if (webSocket != null) {
             webSocket.close();
             webSocket = null;
+        }
+        if (sharedPreferences != null) {
+            sharedPreferences.unregisterOnSharedPreferenceChangeListener(
+                    onSharedPreferenceChangeListener);
+            sharedPreferences = null;
         }
         handler.removeCallbacks(retryConnectRunnable);
         enableConnectivityReceiver(false);
@@ -169,7 +200,10 @@ public class Connection {
     private void connectNow() {
         enableConnectivityReceiver(false);
         webSocketFuture = AsyncHttpClient.getDefaultInstance()
-                .websocket("wss://local.host/steps/ws", null,
+                .websocket(
+                        sharedPreferences.getString(
+                                SettingsActivity.KEY_PREF_WEBSOCKETURL, ""),
+                        null,
                         webSocketConnectCallback);
     }
 
@@ -272,4 +306,6 @@ public class Connection {
             tryConnect();
         }
     };
+
+    private SharedPreferences sharedPreferences;
 }

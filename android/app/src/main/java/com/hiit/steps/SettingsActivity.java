@@ -7,10 +7,9 @@ import android.preference.Preference;
 import android.preference.PreferenceFragment;
 
 public class SettingsActivity extends Activity {
+    public static final String KEY_PREF_WEBSOCKETURL = "pref_webSocketUrl";
     public static class SettingsFragment extends PreferenceFragment implements
             SharedPreferences.OnSharedPreferenceChangeListener {
-
-        public static final String KEY_PREF_WEBSOCKETURL = "pref_webSocketUrl";
 
         @Override
         public void onCreate(Bundle savedInstanceState) {
