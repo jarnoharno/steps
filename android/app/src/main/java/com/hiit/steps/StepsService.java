@@ -156,9 +156,9 @@ public class StepsService extends Service {
         Log.i("Steps", s);
         String line = "[" + dateFormat.format(new Date()) + "] Service: " + s;
         if (outputBuffer.size() >= MAX_OUTPUT_BUFFER_LINES) {
-            outputBuffer.pop();
+            outputBuffer.removeFirst();
         }
-        outputBuffer.push(line);
+        outputBuffer.addLast(line);
         if (client == null) {
             return;
         }

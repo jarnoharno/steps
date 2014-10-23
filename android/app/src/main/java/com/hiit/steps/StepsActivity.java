@@ -37,7 +37,7 @@ public class StepsActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        printActivity("Binding service");
+        //printActivity("Binding service");
         StepsService.bind(this, serviceConnection);
     }
 
@@ -45,7 +45,7 @@ public class StepsActivity extends Activity {
     protected void onStop() {
         // Unbind from the service
         if (stepsService != null) {
-            printActivity("Unbinding service");
+            //printActivity("Unbinding service");
             stepsService.removeClient(client);
             unbindService(serviceConnection);
             stepsService = null;
@@ -99,7 +99,7 @@ public class StepsActivity extends Activity {
             ToggleButton traceButton = (ToggleButton) findViewById(R.id.traceButton);
             serviceButton.setEnabled(true);
             stepsService.addClient(client);
-            printActivity("Service bound");
+            //printActivity("Service bound");
             for (String s: stepsService.getOutputBuffer()) {
                 print(s);
             }
@@ -116,7 +116,7 @@ public class StepsActivity extends Activity {
             ToggleButton serviceButton = (ToggleButton) findViewById(R.id.serviceButton);
             serviceButton.setChecked(false);
             serviceButton.setEnabled(false);
-            printActivity("Service unbound");
+            //printActivity("Service unbound");
         }
     };
 
