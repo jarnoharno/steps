@@ -253,12 +253,18 @@ func (f *Filter) write(msg *stepsproto.Message) {
 func (f *Filter) mux(msg *stepsproto.Message) {
 
 	// ignore control messages
-	if msg.GetType() != stepsproto.Message_SENSOR_EVENT {
+	if msg.GetType() != stepsproto.Message_SENSOR_EVENT &&
+		msg.GetType() != stepsproto.Message_LOCATION {
 		return
 	}
 
 	// write to disk
 	f.write(msg)
+
+	// ignore location
+	if msg.GetType() == stepsproto.Message_LOCATION {
+		return
+	}
 
 	id := msg.GetSensorId()
 

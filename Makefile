@@ -7,12 +7,31 @@ PROTO := $(PBSRCDIR)/steps.proto
 $(PBDIR)/%.pb.go: $(PBSRCDIR)/%.proto $(PBDIR)
 	protoc --proto_path=$(PBSRCDIR) --gogo_out=$(PBDIR) $<
 
-$(SERVERDIR)/steps: $(SERVERDIR)/*.go $(SERVERDIR)/*.c $(SERVERDIR)/*.h \
+$(SERVERDIR)/stepsd: $(SERVERDIR)/*.go $(SERVERDIR)/*.c $(SERVERDIR)/*.h \
 		$(PBDIR)/steps.pb.go
 	cd $(SERVERDIR) && go build -o stepsd
 
 $(PBDIR):
 	mkdir -p $@
+
+# conv
+
+.PHONY: conv
+conv: conv/conv
+
+conv/conv: conv/conv.go
+	cd conv && go build
+
+# cpp
+
+.PHONY: cconv
+cconv: conv/c/cconv
+
+conv/c/%.pb.h: $(PBSRCDIR)/%.proto
+	protoc -I=$(PBSRCDIR) --cpp_out=conv/c $<
+
+conv/c/cconv: conv/c/cconv.cpp conv/c/steps.pb.h
+	g++ -O2 -std=c++11 -lprotobuf -o $@ conv/c/cconv.cpp conv/c/steps.pb.cc
 
 # julia
 

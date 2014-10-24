@@ -68,16 +68,16 @@ func read(r protoio.Reader) error {
 func msgprint(msg *stepsproto.Message) {
 	switch *msg.Type {
 	case stepsproto.Message_SENSOR_EVENT:
-		fmt.Printf("%s %s", ts(0, *msg.Timestamp), *msg.SensorId)
+		fmt.Printf("%s %s", ts(*msg.Timestamp), *msg.SensorId)
 		for _, v := range msg.Value {
-			fmt.Print(" ", v)
+			fmt.Printf(" %.8f", v)
 		}
 		fmt.Println()
 	case stepsproto.Message_LOCATION:
 		fmt.Printf("%s %s %s %.8f %.8f %.2f %.2f %.2f %.2f\n",
-			ts(0, *msg.Timestamp),
+			ts(*msg.Timestamp),
 			*msg.SensorId,
-			ts(*msg.Utctime / 1000, *msg.Utctime % 1000),
+			ts(*msg.Utctime * 1000000),
 			*msg.Latitude,
 			*msg.Longitude,
 			*msg.Accuracy,
@@ -87,7 +87,7 @@ func msgprint(msg *stepsproto.Message) {
 	}
 }
 
-func ts(sec int64, nsec int64) string {
+func ts(nsec int64) string {
 	//time.Unix(0, *msg.Timestamp).Format(time.RFC3339),
-	return time.Unix(sec, nsec).Format("2006-01-02 15:04:05.000")
+	return time.Unix(0, nsec).Format("2006/01/02 15:04:05.000")
 }
