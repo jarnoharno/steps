@@ -4,6 +4,9 @@ PBDIR := $(SERVERDIR)/stepsproto
 
 PROTO := $(PBSRCDIR)/steps.proto
 
+.PHONY: all
+all: stepsd
+
 $(PBDIR)/%.pb.go: $(PBSRCDIR)/%.proto $(PBDIR)
 	protoc --proto_path=$(PBSRCDIR) --gogo_out=$(PBDIR) $<
 
@@ -21,6 +24,21 @@ conv: conv/conv
 
 conv/conv: conv/conv.go
 	cd conv && go build
+
+# stepsd
+
+.PHONY: stepsd
+stepsd: stepsd/stepsd
+
+stepsd/stepsd: stepsd/stepsd.go stepsd/stepsproto/steps.pb.go stepsd/server.go \
+		stepsd/device.go stepsd/connection.go
+	cd stepsd && go build -o stepsd
+
+stepsd/stepsproto/steps.pb.go: $(PBSRCDIR)/steps.proto stepsd/stepsproto
+	protoc -I=$(PBSRCDIR) --gogo_out=stepsd/stepsproto $<
+
+stepsd/stepsproto:
+	mkdir -p $@
 
 # cpp
 
