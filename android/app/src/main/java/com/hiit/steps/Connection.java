@@ -93,7 +93,7 @@ public class Connection {
         return Message.newBuilder()
                 .setType(Message.Type.START)
                 .setTimestamp(currentTimeNanos())
-                .setId(NAME)
+                .setSensorId(NAME)
                 .build();
     }
 
@@ -101,7 +101,7 @@ public class Connection {
         return Message.newBuilder()
                 .setType(Message.Type.STOP)
                 .setTimestamp(currentTimeNanos())
-                .setId(traceId)
+                .setSensorId(traceId)
                 .build();
     }
 
@@ -109,7 +109,7 @@ public class Connection {
         return Message.newBuilder()
                 .setType(Message.Type.RESUME)
                 .setTimestamp(currentTimeNanos())
-                .setId(traceId)
+                .setSensorId(traceId)
                 .build();
     }
 
@@ -219,7 +219,7 @@ public class Connection {
                     byte[] data = byteBufferList.getAllByteArray();
                     try {
                         Message msg = Message.parseFrom(data);
-                        traceId = msg.getId();
+                        traceId = msg.getSensorId();
                         connectionClient.idReceived(traceId);
                     } catch (InvalidProtocolBufferException e) {
                         print(e.toString());
