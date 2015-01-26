@@ -1,10 +1,13 @@
 .gradle
 local.properties
-.idea
 *.iml
-build
 stepsproto
 /server/steps
 /ublox/ublox
 /node_modules
 /www/steps.json
+/.idea/workspace.xml
+/.idea
+.DS_Store
+/build
+/data

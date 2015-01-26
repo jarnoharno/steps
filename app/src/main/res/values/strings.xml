@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Steps</string>
+    <string name="service_button_on">Stop</string>
+    <string name="service_button_off">Restart</string>
+    <string name="service_notification">Steps started</string>
+    <string name="service_notification_title">Steps</string>
+    <string name="service_notification_message">Steps is running</string>
+    <string name="samples_label">Samples:</string>
+    <string name="steps_label">Steps:</string>
+
+</resources>
