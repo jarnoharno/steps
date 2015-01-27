@@ -5,7 +5,7 @@ import (
 	"time"
 	"./stepsproto"
 	"github.com/gorilla/websocket"
-	"code.google.com/p/gogoprotobuf/proto"
+	"github.com/gogo/protobuf/proto"
 )
 
 const (
